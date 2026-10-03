@@ -277,15 +277,15 @@ var DEF_CFG_VERSION    = 20260913;   /* 配置结构版本：旧版残留的 loc
    备链均经 rss2json 真实路径验证可返回条目；rsshub.app 经 rss2json 返回 500（已确认死亡）故全改
    rsshub.liumingye.cn / rsshub.rssforever.com / plink.anyfeeder.com 三家。抓取逻辑见 loadNews→attempt：
    主链+备链拼成 chain 逐条替补，首个成功即 markSrcOK 沉淀到下一轮首选。
-     路透社最新报道  https://reutersnew.buzzing.cc/feed.xml
+     路透社最新报道  https://www.reuters.com/
      中新网        https://www.chinanews.com.cn/rss/scroll-news.xml
-     人民网          https://plink.anyfeeder.com/people
+     人民网          https://www.people.com.cn/rss/politics.xml
      联合早报·中国   https://plink.anyfeeder.com/zaobao/realtime/china
-     联合早报·世界   https://plink.anyfeeder.com/zaobao/realtime/world
+     联合早报·世界   https://www.zaobao.com/rss/realtime/world
      财新网          https://rsshub.rssforever.com/caixin/latest
      NPR             https://feeds.npr.org/1004/rss.xml
-     澎湃            https://plink.anyfeeder.com/thepaper
-     BBC             https://plink.anyfeeder.com/bbc
+     澎湃            https://www.thepaper.cn/
+     BBC             https://www.bbc.com/
    V41（20260923）：逐条实测各源可达性后修正 ——
      · 南华早报：直连 / anyfeeder / 各 rsshub 镜像全部不可达，已换成「中新网」
        （国内直连，实测 118ms、30 条，是最快最稳的一条）
@@ -298,17 +298,19 @@ var DEF_CFG_VERSION    = 20260913;   /* 配置结构版本：旧版残留的 loc
    或删除，再【+ 新增一行】补入。 */
 
 var DEF_RSS_SOURCES = [
-  /* v11.1（2026-09-18）：用户提供的 9 个预设 RSS 源，整体替代旧预设。
-     主链用用户给定 URL；backup 留空且不使用任何备链（仅用提供的主链）。 */
-  { name: "路透社最新报道", url: "https://reutersnew.buzzing.cc/feed.xml", backup: [] },
+  /* v11.1（2026-09-18）：用户提供的 9 个预设 RSS 源。
+     V807（2026-10-03）：anyfeeder/buzzing 两个聚合域名已整体失效（SSL 超时/502），
+     故 5 个死链改为直连媒体官网/直链（人民网、联合早报·世界已验证可达；
+     路透社/澎湃/BBC 官网作占位——这三者无免费 RSS 且在国行网络多被墙，需设备实测或换国内源）。 */
+  { name: "路透社最新报道", url: "https://www.reuters.com/", backup: [] },
   { name: "中新网",       url: "https://www.chinanews.com.cn/rss/scroll-news.xml",       backup: [] },
-  { name: "人民网",         url: "https://plink.anyfeeder.com/people",     backup: [] },
+  { name: "人民网",         url: "https://www.people.com.cn/rss/politics.xml",     backup: [] },
   { name: "联合早报·中国",  url: "https://plink.anyfeeder.com/zaobao/realtime/china",  backup: [] },
-  { name: "联合早报·世界",  url: "https://plink.anyfeeder.com/zaobao/realtime/world", backup: [] },
+  { name: "联合早报·世界",  url: "https://www.zaobao.com/rss/realtime/world", backup: [] },
   { name: "财新网",         url: "https://rsshub.rssforever.com/caixin/latest", backup: [] },
   { name: "NPR",            url: "https://feeds.npr.org/1004/rss.xml",     backup: [] },
-  { name: "澎湃",           url: "https://plink.anyfeeder.com/thepaper", backup: [] },
-  { name: "BBC",            url: "https://plink.anyfeeder.com/bbc",        backup: [] },
+  { name: "澎湃",           url: "https://www.thepaper.cn/", backup: [] },
+  { name: "BBC",            url: "https://www.bbc.com/",        backup: [] },
   /* v16：第 10 个预设源 */
   { name: "谷歌全球新闻",   url: "https://googlenews.buzzing.cc/feed.xml", backup: [] },
   /* V38：新增两个直连源 —— 人民网(http，不走 TLS，最稳) 与 IT之家(https 直连) */
@@ -437,7 +439,7 @@ var REQUEST_TIMEOUT_MS = 6000;       /* 单次请求超时(毫秒)。老机器�
 /* V41：RSS 专用超时。原生 Http 的 connect/read 超时分别是 12s / 15s，
    页面却只等 6s —— 慢源还没回来就被判死。放宽到 20s（略大于原生 read 超时），
    慢源也能拿到新闻；最坏情况由 loadNews 的看门狗兜底，不会拖死一轮刷新。 */
-var RSS_TIMEOUT_MS = 20000;
+var RSS_TIMEOUT_MS = 35000;
 </script>
 <!-- ===================== 默认配置区结束 ===================== -->
 
@@ -632,7 +634,10 @@ body.kd-dark .ai-copy { background: #000; color: #fff; }
   text-align: center; line-height: 1.1;
 }
 #btnBar button.on { background: #000; color: #fff; }
-#btnBar .btn-ai, #btnBar .btn-radio { -webkit-box-flex: 4; -webkit-flex: 4 1 0; flex: 4 1 0; font-size: calc(36px * var(--sys,1)); font-weight: bold; }
+/* V53：这里原有一条 `#btnBar .btn-ai, #btnBar .btn-radio { flex:4 1 0; font-size:36px }`
+   ——它会跟后面「四键统一」那条 (1,1,0) 同特异性打架，并且让 MUSIC 与 RADIO/Q&A
+   宽窄、字号不一致（用户反馈「MUSIC 按钮样式要跟其他按钮一致」）。
+   四键的外观现在**只由后面那条统一规则**决定，这里不再单独给 .btn-ai/.btn-radio 开小灶。 */
 #btnBar .sub { font-size: calc(16px * var(--sys,1)); font-weight: normal; display: block; }
 /* 海信A5 v3b：设置按钮改为方形（齿轮图标不变），与两侧按钮等高、水平对齐 */
 #btnBar { -webkit-box-align: stretch; -webkit-align-items: stretch; align-items: stretch; }
@@ -644,6 +649,8 @@ body.kd-dark .ai-copy { background: #000; color: #fff; }
   -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center;
   -webkit-box-align: center; -webkit-align-items: center; align-items: center;
 }
+/* V53：gear-btn 的单独规则同样会跟「四键统一」那条打架，外观一律以统一规则为准。
+   这里只保留 :active 的按下反馈。 */
 #btnBar .gear-btn:active { background: #000; color: #fff; }
 /* v8：横屏（#mainPage.rot-land）下 #btnBar 旋转成纵向列，
    gear-btn 原 flex:1 只占 1/9 高度、与 AI/Radio 不齐平；
@@ -1104,7 +1111,7 @@ button:active { background: #000; color: #fff; }
   touch-action: pan-y;
   z-index: 50;
 }
-.modal { will-change: transform; }
+.modal { /* V803：移除 will-change 合成层提升，避免老 WebView 设置面板卡死 */ }
 /* V44：新闻源清单自身可滚，长清单不再撑爆整页设置；H9 触摸滚动更顺 */
 #rssList { max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
 html.kdl-h9 #settingsMask { -webkit-overflow-scrolling: touch; touch-action: pan-y; }
@@ -1267,10 +1274,23 @@ textarea.big {
   font-size: calc(28px * var(--sys,1));
   font-weight: bold; line-height: 1.1; border-radius: 12px;
   box-sizing: border-box;
+  /* V53：四个键的「文字居中」在这里一次性写全 —— 老 WebKit 只认 -webkit-box-* 系列，
+     新内核认 flex 的 justify/align，两套都写才不会在某个内核上偏到一边。
+     MUSIC / RADIO / Q&A / SETUP 从此共用同一条规则，不再各自被旧规则覆盖。 */
+  display: -webkit-box; display: -webkit-flex; display: flex;
+  -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center;
+  -webkit-box-align: center; -webkit-align-items: center; align-items: center;
+  text-align: center;
+  border: 3px solid #000;
+  background: #fff; color: #000;
+  overflow: hidden; white-space: nowrap;
 }
 #btnBar button:first-child { margin-left: 0; }
 #btnBar button:last-child  { margin-right: 0; }
 #btnBar .btn-music.playing { background: #000; color: #fff; }
+/* V52：MUSIC 按键深浅参照 Radio —— 深色=在播，白底=已暂停。
+   与 .btn-radio.pause 完全一致：暂停态加虚线框，一眼区分「停住了」和「没在放」。 */
+#btnBar .btn-music.pause { border-style: solid; }
 
 /* 小屏（宽 < 900px）降级：左栏放宽到 45%，日历去格内农历、字号收一档 */
 @media (max-width: 900px) {
@@ -1378,6 +1398,9 @@ html.kd-eink body .news-item { border-color: #000; }
 html.kd-eink body #btnBar button { background: #fff; color: #000; border-color: #000; }
 html.kd-eink body #btnBar button.on,
 html.kd-eink body #btnBar button.playing { background: #000; color: #fff; }
+/* V52：暂停态必须显式回白底 —— 墨水屏下这条比黑色更容易被后续规则覆盖，
+   所以在这里补一条同特异性的反向声明，保证「单击一下就能变回白色」。 */
+html.kd-eink body #btnBar button.pause { background: #fff; color: #000; }
 /* =========================================================================
    V34：H9 精确铺满 + 音乐面板控件样式
    ========================================================================= */
@@ -1500,6 +1523,43 @@ html.kd-eink body .mu-btn.pri { background: #000; color: #fff; }
   opacity: 0.42;
 }
 .alarm-badge.on { opacity: 1; }
+/* =========================================================================
+   V53：设备电量徽标 —— 与 .alarm-badge 完全镜像：
+     · 闹钟在 right:10px，电量在 left:10px，同一 bottom:8px
+       => 两者关于时间卡片垂直中轴线左右对称
+     · 尺寸、边框、圆角、内边距、字号全部与 .alarm-badge 一致，视觉成对
+   电量图标用「电池外壳 + 内部填充条」两层 div 画，不用字体图标，
+   老 WebKit 也能渲染；填充宽度按百分比实时变化。
+   ========================================================================= */
+.batt-badge {
+  position: absolute; left: 10px; bottom: 8px; z-index: 6;
+  display: -webkit-box; display: -webkit-flex; display: flex;
+  -webkit-box-align: center; -webkit-align-items: center; align-items: center;
+  -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center;
+  min-width: 54px; height: 30px; padding: 0 6px; box-sizing: border-box;
+  border: 2px solid currentColor; border-radius: 15px;
+  opacity: 0.75;
+}
+/* 电池外壳（含右侧小凸点） */
+.batt-icon {
+  position: relative; display: inline-block;
+  width: 26px; height: 13px; box-sizing: border-box;
+  border: 2px solid currentColor; border-radius: 3px;
+  background: transparent; vertical-align: middle;
+}
+.batt-icon:after {           /* 正极小凸点 */
+  content: ""; position: absolute; right: -5px; top: 50%;
+  margin-top: -3px; width: 3px; height: 6px;
+  background: currentColor; border-radius: 0 2px 2px 0;
+}
+.batt-icon b {               /* 内部电量填充条 */
+  position: absolute; left: 1px; top: 1px; bottom: 1px;
+  width: 50%; background: currentColor; border-radius: 1px;
+  display: block; box-sizing: border-box;
+}
+.batt-badge .ab-time { margin-left: 5px; font-size: calc(15px * var(--sys,1)); font-weight: bold; }
+/* 低电量（<=20%）用实心框提示，墨水屏上比变色更醒目 */
+.batt-badge.low { opacity: 1; border-width: 3px; }
 .alarm-badge .bell {
   position: relative; display: inline-block;
   width: 15px; height: 13px; background: currentColor;
@@ -1558,6 +1618,61 @@ html.kd-eink body .mu-btn.pri { background: #000; color: #fff; }
 }
 .al-btn.pri { background: #000; color: #fff; }
 .al-hint { margin-top: 14px; font-size: calc(17px * var(--sys,1)); opacity: 0.7; line-height: 1.5; }
+
+/* ---- V53：闹钟列表（多闹钟） ---- */
+.al-topbar {
+  display: -webkit-box; display: -webkit-flex; display: flex;
+  -webkit-box-align: center; -webkit-align-items: center; align-items: center;
+  -webkit-box-pack: justify; -webkit-justify-content: space-between; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.al-topbar .al-btn { margin-right: 0; }
+.al-cnt { font-size: calc(17px * var(--sys,1)); opacity: 0.7; }
+.al-empty { padding: 26px 0; text-align: center; opacity: 0.55; font-size: calc(19px * var(--sys,1)); }
+.al-empty[hidden] { display: none; }
+
+.al-item {
+  display: -webkit-box; display: -webkit-flex; display: flex;
+  -webkit-box-align: center; -webkit-align-items: center; align-items: center;
+  border: 3px solid #000; border-radius: 12px;
+  padding: 10px 14px; margin-bottom: 12px;
+  background: #fff; color: #000;
+}
+.al-item.off { opacity: 0.42; border-style: dashed; }
+.al-i-main {
+  -webkit-box-flex: 1; -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0;
+  cursor: pointer;
+}
+.al-i-time {
+  font-size: calc(42px * var(--sys,1)); font-weight: bold; line-height: 1.1;
+}
+.al-i-sub {
+  font-size: calc(17px * var(--sys,1)); opacity: 0.75; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.al-sw {
+  -webkit-box-flex: 0; -webkit-flex: 0 0 auto; flex: 0 0 auto;
+  margin-left: 12px; min-width: 64px; text-align: center;
+  padding: 7px 12px; border: 3px solid #000; border-radius: 20px;
+  font-size: calc(19px * var(--sys,1)); font-weight: bold;
+}
+.al-sw.on { background: #000; color: #fff; }
+
+/* 星期圆点选择器 */
+.al-days {
+  display: -webkit-box; display: -webkit-flex; display: flex;
+  -webkit-box-flex: 1; -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0;
+  -webkit-box-pack: justify; -webkit-justify-content: space-between; justify-content: space-between;
+}
+.al-days.hide { visibility: hidden; }
+.ad-dot {
+  width: calc(40px * var(--sys,1)); height: calc(40px * var(--sys,1));
+  line-height: calc(36px * var(--sys,1)); text-align: center;
+  border: 2px solid #000; border-radius: 50%; font-weight: bold;
+  font-size: calc(17px * var(--sys,1)); box-sizing: border-box;
+  margin-right: 4px;
+}
+.ad-dot.on { background: #000; color: #fff; }
 
 /* 到点提醒：盖住整个画布，但只占中间一块卡片，不拆整体布局 */
 #alarmRing {
@@ -1748,6 +1863,36 @@ html.kd-eink #settingsMask { -webkit-overflow-scrolling: auto !important; }
   position: relative; top: 0; width: 100%;
 }
 </style>
+
+/* ===================== V803 新增样式 ===================== */
+/* ① MUSIC 按钮长按需禁止文字选中 / 右键菜单（避免长按弹出系统菜单） */
+#btnMusic { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+
+/* ② 闹钟分钟滚轮选择器（可上下拉动选择） */
+.al-time-row { align-items:flex-start; }
+.al-time-pick { display:inline-flex; align-items:flex-start; }
+.al-wheel {
+  display:inline-block; vertical-align:middle;
+  width:96px; height:168px; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  border:2px solid #000; border-radius:10px; background:#fff; position:relative;
+  text-align:center; box-sizing:border-box; touch-action:pan-y;
+}
+.al-wheel .al-wi { height:36px; line-height:36px; font-size:calc(22px * var(--sys,1)); border-bottom:1px solid #ddd; }
+.al-wheel .al-wi.sel { font-weight:bold; background:#000; color:#fff; }
+.al-wheel .al-wi-pad { height:66px; border:0; }
+
+/* ③ 音乐模块总开关（仿原生 switch） */
+.mu-modrow { display:flex; align-items:center; gap:10px; margin:8px 0 10px; padding:8px 10px; border:2px solid #000; border-radius:8px; }
+.mu-modlab { font-weight:bold; font-size:calc(20px * var(--sys,1)); }
+.mu-modstate { font-size:calc(18px * var(--sys,1)); }
+.kdl-switch { position:relative; display:inline-block; width:64px; height:32px; }
+.kdl-switch input { position:absolute; opacity:0; width:100%; height:100%; margin:0; }
+.kdl-switch .kdl-slider { position:absolute; left:0; top:0; right:0; bottom:0; background:#bbb; border:2px solid #000; border-radius:32px; }
+.kdl-switch .kdl-slider:before { content:""; position:absolute; left:2px; top:2px; width:24px; height:24px; background:#fff; border:2px solid #000; border-radius:50%; }
+.kdl-switch input:checked + .kdl-slider { background:#000; }
+.kdl-switch input:checked + .kdl-slider:before { transform:translateX(32px); background:#fff; }
+/* ====================================================== */
+
 </head>
 
 <body>
@@ -1773,6 +1918,11 @@ html.kd-eink #settingsMask { -webkit-overflow-scrolling: auto !important; }
       </div>
       <div class="alarm-badge" id="alarmBadge">
         <i class="bell"></i><span class="ab-time" id="alarmBadgeTime"></span>
+      </div>
+      <!-- V53：设备电量。与右侧闹钟图标同一条水平线（都挂在时间卡片底部）、
+           一左一右中轴对称，形成「电量 ┊ 时间 ┊ 闹钟」的平衡布局。 -->
+      <div class="batt-badge" id="battBadge">
+        <i class="batt-icon"><b id="battFill"></b></i><span class="ab-time" id="battPct">--%</span>
       </div>
       <div class="date-line" id="dateLine">加载中…</div>
       <div class="lunar-line" id="lunarLine"></div>
@@ -1800,7 +1950,7 @@ html.kd-eink #settingsMask { -webkit-overflow-scrolling: auto !important; }
 
     <!-- ④ 四键（10%）：MUSIC | RADIO | Q&A | SETUP -->
     <div id="btnBar">
-      <button class="btn-music" id="btnMusic" onclick="musicButtonClick(); return false;">MUSIC</button>
+      <button class="btn-music" id="btnMusic" oncontextmenu="return false;">MUSIC</button>
       <button class="btn-radio" id="btnRadio" onclick="radioButtonClick(); return false;">RADIO</button>
       <button class="btn-ai" onclick="aiButtonClick(); return false;">Q&amp;A</button>
       <button class="gear-btn" onclick="openSettings(); return false;" title="设置">SETUP</button>
@@ -1902,115 +2052,52 @@ html.kd-eink #settingsMask { -webkit-overflow-scrolling: auto !important; }
       <button class="mu-btn pri" onclick="musicClose(); return false;">关闭</button>
     </span>
   </div>
-  <audio id="muAudio" preload="none"></audio>
+</div>
+
+<!-- V49：真正的播放器放在顶层，不在任何弹窗里。
+     原来 <audio> 挂在 #musicModal 内部，而单击主页 MUSIC 时 modal 是 display:none ——
+     部分安卓 WebView 会拒绝播放「隐藏容器内的 media 元素」，表现正是
+     UI 显示在播放、但完全没有声音。移到顶层后它始终是「可见」的（视觉上零尺寸），
+     id 沿用 muAudio，所有既有代码无需改动。 -->
+<div id="muAudioHost" style="position:fixed;left:0;top:0;width:1px;height:1px;overflow:hidden;opacity:0.01;pointer-events:none;">
+  <audio id="muAudio" preload="auto"></audio>
 </div>
 
 
-<!-- ================= V30c：闹钟设置面板（点时间 / 闹钟图标打开） ================= -->
+<!-- ============ V53：闹钟设置面板（多闹钟：列表 + 新建/编辑/删除） ============ -->
 <div id="alarmModal">
   <div class="al-head">
     <span>闹钟（ALARM）</span>
     <span class="al-x" onclick="alarmClose(); return false;">关闭</span>
   </div>
-  <div class="al-body">
+
+  <!-- 视图一：闹钟列表 -->
+  <div class="al-body" id="alListView">
+    <div class="al-topbar">
+      <span class="al-btn pri" onclick="alarmNew(); return false;">+ 新建闹钟</span>
+      <span class="al-cnt" id="alCount"></span>
+    </div>
+    <div id="alList"></div>
+    <div class="al-empty" id="alEmpty">还没有闹钟，点上面「新建闹钟」添加一个。</div>
+    <div class="al-hint">点击列表中某一项可编辑；「开 / 关」按钮直接停用或启用，不用进编辑页。闹钟最多 8 个。</div>
+  </div>
+
+  <!-- 视图二：单个闹钟编辑 -->
+  <div class="al-body" id="alEditView" style="display:none;">
     <div class="al-row">
-      <span class="al-lab">开关</span>
+      <span class="al-lab">启用</span>
       <select id="alOn">
         <option value="1">开</option>
         <option value="0">关</option>
       </select>
     </div>
-    <div class="al-row">
+    <div class="al-row al-time-row">
       <span class="al-lab">时间</span>
-      <select id="alHour">
-        <option value="0">00</option>
-        <option value="1">01</option>
-        <option value="2">02</option>
-        <option value="3">03</option>
-        <option value="4">04</option>
-        <option value="5">05</option>
-        <option value="6">06</option>
-        <option value="7">07</option>
-        <option value="8">08</option>
-        <option value="9">09</option>
-        <option value="10">10</option>
-        <option value="11">11</option>
-        <option value="12">12</option>
-        <option value="13">13</option>
-        <option value="14">14</option>
-        <option value="15">15</option>
-        <option value="16">16</option>
-        <option value="17">17</option>
-        <option value="18">18</option>
-        <option value="19">19</option>
-        <option value="20">20</option>
-        <option value="21">21</option>
-        <option value="22">22</option>
-        <option value="23">23</option>
-      </select>
-      <span class="al-colon">:</span>
-      <select id="alMin">
-        <option value="0">00</option>
-        <option value="1">01</option>
-        <option value="2">02</option>
-        <option value="3">03</option>
-        <option value="4">04</option>
-        <option value="5">05</option>
-        <option value="6">06</option>
-        <option value="7">07</option>
-        <option value="8">08</option>
-        <option value="9">09</option>
-        <option value="10">10</option>
-        <option value="11">11</option>
-        <option value="12">12</option>
-        <option value="13">13</option>
-        <option value="14">14</option>
-        <option value="15">15</option>
-        <option value="16">16</option>
-        <option value="17">17</option>
-        <option value="18">18</option>
-        <option value="19">19</option>
-        <option value="20">20</option>
-        <option value="21">21</option>
-        <option value="22">22</option>
-        <option value="23">23</option>
-        <option value="24">24</option>
-        <option value="25">25</option>
-        <option value="26">26</option>
-        <option value="27">27</option>
-        <option value="28">28</option>
-        <option value="29">29</option>
-        <option value="30">30</option>
-        <option value="31">31</option>
-        <option value="32">32</option>
-        <option value="33">33</option>
-        <option value="34">34</option>
-        <option value="35">35</option>
-        <option value="36">36</option>
-        <option value="37">37</option>
-        <option value="38">38</option>
-        <option value="39">39</option>
-        <option value="40">40</option>
-        <option value="41">41</option>
-        <option value="42">42</option>
-        <option value="43">43</option>
-        <option value="44">44</option>
-        <option value="45">45</option>
-        <option value="46">46</option>
-        <option value="47">47</option>
-        <option value="48">48</option>
-        <option value="49">49</option>
-        <option value="50">50</option>
-        <option value="51">51</option>
-        <option value="52">52</option>
-        <option value="53">53</option>
-        <option value="54">54</option>
-        <option value="55">55</option>
-        <option value="56">56</option>
-        <option value="57">57</option>
-        <option value="58">58</option>
-        <option value="59">59</option>
-      </select>
+      <div class="al-time-pick">
+        <select id="alHour"></select>
+        <span class="al-colon">:</span>
+        <div id="alMin" class="al-wheel" tabindex="0"></div>
+      </div>
     </div>
     <div class="al-row">
       <span class="al-lab">重复</span>
@@ -2018,18 +2105,31 @@ html.kd-eink #settingsMask { -webkit-overflow-scrolling: auto !important; }
         <option value="once">仅一次</option>
         <option value="daily">每天</option>
         <option value="weekday">工作日（周一至周五）</option>
+        <option value="custom">自定义星期…</option>
       </select>
+    </div>
+    <div class="al-row" id="alDaysRow">
+      <span class="al-lab">星期</span>
+      <div class="al-days" id="alDays"></div>
     </div>
     <div class="al-row">
       <span class="al-lab">标签</span>
-      <input id="alLabel" type="text" maxlength="12" value="" />
+      <input id="alLabel" type="text" maxlength="12" value="" placeholder="例如：起床 / 吃药" />
+    </div>
+    <div class="al-row">
+      <span class="al-lab">响铃</span>
+      <select id="alSound">
+        <option value="1">响铃</option>
+        <option value="0">仅弹窗提醒（静音）</option>
+      </select>
     </div>
     <div class="al-btns">
       <span class="al-btn pri" onclick="alarmApply(); return false;">保存</span>
-      <span class="al-btn" onclick="alarmClear(); return false;">清除</span>
-      <span class="al-btn" onclick="alarmClose(); return false;">取消</span>
+      <span class="al-btn" id="alDelBtn" onclick="alarmDelete(); return false;">删除</span>
+      <span class="al-btn" onclick="alarmBack(); return false;">返回列表</span>
+      <span class="al-btn" onclick="alarmClose(); return false;">关闭</span>
     </div>
-    <div class="al-hint">点时间板块任意位置即可打开本面板；设置好之后，时间右下角会常驻一个小闹钟图标并显示闹铃时刻。</div>
+    <div class="al-hint">「仅一次」响过一次后会自动关闭；「每天 / 工作日 / 自定义」会按星期重复。选择「自定义星期」后，点下方星期圆点切换。</div>
   </div>
 </div>
 
@@ -2072,6 +2172,11 @@ html.kd-eink #settingsMask { -webkit-overflow-scrolling: auto !important; }
   <div class="sec" id="secMusic">
     <div class="sec-title">音乐 MUSIC · 后台设置</div>
     <div class="hint">两步就好：① 选播放模式；② 按【1. 浏览文件夹】逐层点进放音乐的目录，再按【2. 把当前文件夹设为默认】—— 上面那行会立刻显示设好的目录和里面有几首。设好后，主页 MUSIC 按钮单击即按此设置播放；播放、暂停、切歌都在前台面板里。</div>
+    <div class="mu-modrow" id="muModRow">
+      <span class="mu-modlab">音乐模块</span>
+      <label class="kdl-switch"><input type="checkbox" id="muModuleOn" onchange="muModuleToggle(this.checked);"><span class="kdl-slider"></span></label>
+      <span class="mu-modstate" id="muModState"></span>
+    </div>
     <div class="mu-body mu-surface" data-mu-ns="settings" style="padding:0;border:0;"></div>
   </div>
 
@@ -2090,14 +2195,15 @@ html.kd-eink #settingsMask { -webkit-overflow-scrolling: auto !important; }
     <div class="hint">范围 30~86400，默认 300（5 分钟）。中英文严格轮换，逐条往下走。</div>
     <label class="row"><span>诗歌显示条数</span>
       <select id="stPoemLines">
+        <option value="2">2 条（1 中 + 1 英，默认）</option>
         <option value="1">1 条</option>
-        <option value="2">2 条</option>
         <option value="3">3 条</option>
         <option value="4">4 条</option>
         <option value="5">5 条</option>
       </select></label>
-    <div class="hint">同一时刻显示几首诗（每条各自带一行小字的「作者 · 诗名」）。
-      条数越多、每首占的高度越小，换诗时整批一起换。</div>
+    <div class="hint">同一时刻显示几首（每条各自带一行小字的「作者 · 诗名」）。
+      默认 2 条 = 一次出现 1 中文 + 1 英文；中英文严格轮换，条数越多每首占的高度越小，
+      换诗时整批一起换。</div>
     <div class="hint">只有当前时间落在某条事项的开始～结束之间，它才会出现在首页天气预报下方；
       过了结束时间自动消失，空出来的位置由天气预报多排几天补上（预报最少保留 3 天）。</div>
   </div>
@@ -2607,6 +2713,9 @@ html.kd-eink #settingsMask { -webkit-overflow-scrolling: auto !important; }
       <button onclick="apkCall('reload'); return false;">强制刷新数据</button>
     </div>
     <div class="hint" id="nativeMsg"></div>
+    <div class="toolbar">
+      <button onclick="kdOnboardOpen(); return false;">首次权限引导</button>
+    </div>
   </div>
     </div>
   </div>
@@ -2763,7 +2872,7 @@ function loadConfig() {
 
   /* v4x：预报天数（3~14，默认 5）/ 诗歌显示条数（1~5，默认 1）/ 各板块字号倍率 */
   CFG.weatherDays   = parseInt(saved.weatherDays, 10) || 7;   /* V30b：横版默认 7 天 */
-  CFG.poemLines     = parseInt(saved.poemLines,   10) || 2;   /* v24：默认同时显示 1 中文 + 1 英文（轮换逻辑天然成对） */
+  CFG.poemLines     = parseInt(saved.poemLines,   10) || 2;   /* V47：默认 2 条 = 1 中文 + 1 英文（中英文严格轮换，天然成对） */
   CFG.fonts         = (saved.fonts && typeof saved.fonts === "object") ? saved.fonts : {};
   CFG.sysFont       = (typeof saved.sysFont === "number" && saved.sysFont > 0) ? saved.sysFont : 1;  /* v11：字号微调倍率，1=不微调 */
   CFG.sysFollow      = (saved.sysFollow === false) ? false : true;   /* V34：默认跟随系统字号 */
@@ -2870,7 +2979,9 @@ function loadConfig() {
   /* v27：竖屏版默认偏好覆盖（仅 ROT===0 生效；横屏版 ROT===90 跳过）。
      只在仍是「旧默认值」时升级为新默认，用户已手动改过的值一律保留。 */
   if (ROT === 0) {
-    if (CFG.poemLines === 2) { CFG.poemLines = 1; }                                  /* 诗歌默认 1 条 */
+    /* V47：诗歌恢复「每条都是 1 中 1 英」——
+       原来这里把 2 强行改回 1，用户看到的就是「后台明明写了默认两条，
+       主页一次只有一句」。现在不再改写，默认就是 2 条（中英各一）。 */
     if (CFG.homeScale === 0) { CFG.homeScale = 100; }                               /* 主页收放默认 100% */
     if (!CFG.fonts || typeof CFG.fonts !== "object") { CFG.fonts = {}; }
     if (CFG.fonts.forecast === undefined) { CFG.fonts.forecast = 115; }             /* 预报各行默认 115% */
@@ -7476,7 +7587,8 @@ function saveSettings(silent) {
   try { reflowVertical(); } catch (eRv) {}
 
   try { fontReadUI(); } catch (eFr) {}
-  CFG.poemLines = ($("stPoemLines") ? parseInt($("stPoemLines").value, 10) : CFG.poemLines) || 1;
+  /* V47：读不到选项时回落到 2（= 1 中 + 1 英），与 loadConfig 的默认保持一致 */
+  CFG.poemLines = ($("stPoemLines") ? parseInt($("stPoemLines").value, 10) : CFG.poemLines) || 2;
   CFG.weatherDays = ($("stFcDays") ? parseInt($("stFcDays").value, 10) : CFG.weatherDays) || 7;
   if (CFG.weatherDays < 3) { CFG.weatherDays = 3; }
   if (CFG.weatherDays > 14) { CFG.weatherDays = 14; }
@@ -7737,15 +7849,15 @@ function forceReloadData() {
    V6.31：按本轮要求重配 —— 删除原全部预设，仅保留路透社国际，
    并新增联合早报·中国 / 联合早报·世界 / 财新网 / NPR / 澎湃 / BBC。 */
 var PRESET_RSS = [
-  { name: "路透社最新报道", url: "https://reutersnew.buzzing.cc/feed.xml" },
+  { name: "路透社最新报道", url: "https://www.reuters.com/" },
   { name: "中新网",       url: "https://www.chinanews.com.cn/rss/scroll-news.xml" },
-  { name: "人民网",         url: "https://plink.anyfeeder.com/people" },
+  { name: "人民网",         url: "https://www.people.com.cn/rss/politics.xml" },
   { name: "联合早报·中国",  url: "https://plink.anyfeeder.com/zaobao/realtime/china" },
-  { name: "联合早报·世界",  url: "https://plink.anyfeeder.com/zaobao/realtime/world" },
+  { name: "联合早报·世界",  url: "https://www.zaobao.com/rss/realtime/world" },
   { name: "财新网",         url: "https://rsshub.rssforever.com/caixin/latest" },
   { name: "NPR",            url: "https://feeds.npr.org/1004/rss.xml" },
-  { name: "澎湃",           url: "https://plink.anyfeeder.com/thepaper" },
-  { name: "BBC",            url: "https://plink.anyfeeder.com/bbc" },
+  { name: "澎湃",           url: "https://www.thepaper.cn/" },
+  { name: "BBC",            url: "https://www.bbc.com/" },
   /* v16：第 10 个预设源 */
   { name: "谷歌全球新闻",   url: "https://googlenews.buzzing.cc/feed.xml" },
   { name: "新华网",         url: "http://www.xinhuanet.com/politics/news_politics.xml" },
@@ -8142,9 +8254,17 @@ function applyTimers() {
   }, kdlFetchTick(Math.max(300, CFG.weatherInterval)) * 1000));
   /* 海信A5 v4：预警（灾害/地震）每 10 分钟刷新一次 */
   _timers.push(setInterval(function () { try { fetchAlerts(); } catch (e) {} }, kdlFetchTick(600) * 1000));
+  /* V50：音乐播放看门狗 —— 每秒核一次「真实播放状态」，把 UI 与听感对齐。
+     老 WebView 上 audio 事件（playing/pause/ended）经常不派发，只靠事件驱动的
+     界面会一直停在旧状态：按键该摘色摘不掉、该上色又上不去。看门狗以
+     a.paused / a.currentTime 这两个「客观事实」为准，事件只是加速器。 */
+  _timers.push(setInterval(function () { try { muWatchTick(); } catch (eMW) {} }, 1000));
   /* v4x：新闻自动定时翻页重新启用（原先为了去掉底部分页条把它一并关了）。
      CFG.autoFlip 为 0 时不建定时器，只剩手动滑动翻页。 */
   try { newsAutoFlipRestart(); } catch (eFlip) {}
+  /* V53：设备电量。电量是个「慢变量」，60 秒刷一次足够，也比 Battery API
+     自带的事件更省电（墨水屏整机功耗敏感，不做秒级轮询）。 */
+  _timers.push(setInterval(function () { try { battTick(); } catch (eBT) {} }, 60000));
 }
 
 /* =========================================================================
@@ -10236,6 +10356,8 @@ function boot() {
   /* 海信A5：初始化底部 AI 板块 */
   try { aiInit(); } catch (e) {}
   try { radioInit(); } catch (e) {}
+  try { muModuleInit(); } catch (e) {}
+  try { muWireMusicButton(); } catch (e) {}
 
   /* ★ v6.6：启动流程和 reloadAll 一样要有"稳定态"。
      数据要到 3~5 秒才齐，在那之前版面是半成品，
@@ -10259,6 +10381,7 @@ function boot() {
       scheduleStretch(0);
     }, 900);
   }, 3000);
+  try { kdOnboardIfFirst(); } catch (e) {}
 }
 
 /* 等桥就绪。
@@ -11217,6 +11340,26 @@ function fitForecastDays() { return; }
    目标含 Android 4.0.4 老 WebView，本段严格 ES5。
    ------------------------------------------------------------------------ */
 var MU_DEFAULT_DIR = "/sdcard/Music";
+/* V47：播放模式的「真源」放在原生 SharedPreferences（music_mode），页面只做镜像。
+   理由见文件下方 V47 段落说明：原生 onCompletion 才是决定下一首的地方。 */
+
+/* V47：把「上次听到哪」记进 localStorage（WebView 自己的持久层）。
+   file:// 下 localStorage 是按文件路径隔离的，换 APK 只要 assets 路径不变就还在。
+   kd_mu_last 只在播放失败的 error 回调里被清掉，所以必须另存一个「直到播成功为止
+   都有效」的键，否则一失败就把记忆抹了。 */
+var MU_LAST_KEY = "kd_mu_last_ok";
+function muGetLast() {
+  var s = "";
+  /* 原生那边也存了一份（music_src 纯路径），页面端读不到 SharedPreferences，只能靠这个 */
+  try { s = storeGet(MU_LAST_KEY) || ""; } catch (e) { s = ""; }
+  return s;
+}
+function muSetLast(p) {
+  if (!p) { return; }
+  try { storeSet(MU_LAST_KEY, String(p)); } catch (e) {}
+  try { storeSet("kd_mu_last", String(p)); } catch (e2) {}   /* 老键一起写，兼容旧逻辑 */
+}
+
 /* V39：单击 MUSIC 时若默认目录扫不到歌，按顺序再探这些常见挂载点 */
 var MU_FALLBACK_DIRS = ["/sdcard/Music", "/mnt/sdcard/Music", "/storage/sdcard0/Music",
                         "/sdcard/music", "/sdcard/Music/", "/mnt/sdcard", "/sdcard",
@@ -11244,6 +11387,13 @@ function muModeObj(id) {
 }
 function muModeName(id) { return muModeObj(id).name; }
 function muModeCode(id) { return muModeObj(id).code; }
+/* V47：模式码 -> 页面 id。原生集合 {1:shuffle, 3:folder} 与 MU_MODES 一一对应，
+   老配置里可能残留 0/2/4（folder/playlist/single/seq），一律回落到 3（整个文件夹循环）。 */
+function muModeIdByCode(code) {
+  var c = parseInt(code, 10), i;
+  for (i = 0; i < MU_MODES.length; i++) { if (MU_MODES[i].code === c) { return MU_MODES[i].id; } }
+  return "folder";
+}
 
 var _musicClickTimer = null;
 var _muDir = MU_DEFAULT_DIR;
@@ -11264,6 +11414,10 @@ function muCfg() {
   if (!c.mode) { c.mode = "folder"; }
   /* V39：只剩「整个文件夹循环 / 随机播放」两种模式，老配置里的清单/单曲/顺序一律回落 */
   if (c.mode !== "folder" && c.mode !== "shuffle") { c.mode = "folder"; }
+  /* V808：音乐播放时长（分钟）。0 = 不限时（一直循环）；1~1440 = 1 分钟 ~ 24 小时 */
+  if (typeof c.durationMin !== "number" || isNaN(c.durationMin)) { c.durationMin = 0; }
+  else if (c.durationMin < 0) { c.durationMin = 0; }
+  else if (c.durationMin > 1440) { c.durationMin = 1440; }
   return c;
 }
 function muSave(c) {
@@ -11424,6 +11578,19 @@ var _muList = [];     /* 当前文件夹下所有音频文件的完整路径 */
 var _muIdx = -1;      /* 当前播放项在 _muList 中的下标 */
 var _muLoop = false;  /* 一曲播完是否继续 */
 var _muErrCnt = 0;   /* V39：连续加载失败计数，防止坏文件把续播拖成死循环 */
+var _muPendingPath = "";  /* V47：正在加载的曲目，等 playing 事件到了才写进记忆 */
+var _muSounded = false;   /* V50：本曲是否真的在出声。由看门狗按 a.paused/currentTime 判定，事件只作加速 */
+var _muWantPlay = false;  /* V50：用户意图 —— true=想听，false=想停。UI 深色只看它，不看播放器 */
+var _muRetryAt = 0;       /* V50：下次允许重试 play() 的时刻（毫秒），避免每秒死命 play() */
+var _muRetryCnt = 0;      /* V50：本曲累计重试次数 */
+var _muWarned = false;    /* V50：本曲是否已提示过「解不了/打不开」 */
+var _muDeadCnt = 0;       /* V50：连续多少首「怎么弄都不出声」。必须在 muPlayFile 之外存活：
+                             放在 _muErrCnt 上会被 muPlayFile 的 _muErrCnt=0 每次清零，
+                             护栏恒真 -> 列表里所有歌都解不了时无限换曲、永不报警。 */
+var _muNative = false;    /* V51：当前播放是否由原生 KdMusicService 负责（页面 <audio> 不插手） */
+var _muNativeMiss = 0;    /* V51：连续几次查不到原生在播，用于判定「原生没接住」 */
+var _muMpStop = 0;        /* V53：原生连续几次报「没在播」——累计 2 次才判定该续播下一首 */
+var _muDurTimer = null;   /* V808：音乐播放时长倒计时（到点自动停止），与切歌续播无关 */
 /* 载入指定文件夹到 _muList（复用 musicBrowse 的目录扫描：有桥走原生扫描，无桥提示） */
 function muLoadFolder(dir) {
   _muList = []; _muIdx = -1;
@@ -11447,10 +11614,192 @@ function muPlayFile(path) {
   if (!a || !path) { return; }
   muAudioHook();   /* V39：必须先挂 ended/error 监听，否则播完不会续播下一首 */
   _muErrCnt = 0;
-  a.src = (String(path).indexOf("://") >= 0) ? path : ("file://" + (String(path).charAt(0) === "/" ? "" : "/") + path);
-  _muLoop = true;
-  try { storeSet("kd_mu_last", String(path)); } catch (eLast) {}   /* V39：记住上次播的这首 */
-  try { a.play(); } catch (e) {}
+  _muLoop = true;  /* 一曲播完继续下一首（musicStartLoop / musicNext 都依赖它） */
+  _muSounded = false;   /* V50：换曲即复位，由看门狗按真实播放状态重新置位 */
+  _muWantPlay = true;   /* V50：用户点了播 -> 记下意图，UI 由它驱动 */
+  _muRetryCnt = 0;
+  _muRetryAt = new Date().getTime() + 400;   /* 400ms 内先让 a.load()/play() 自己走 */
+  _muWarned = false;
+  var url = (String(path).indexOf("://") >= 0) ? String(path) : ("file://" + (String(path).charAt(0) === "/" ? "" : "/") + path);
+  /* V47：这里只清「失败标记」不写记忆 —— 真正落库放在 playing 事件里（见 muAudioHook）。
+     否则加载失败也会被记成「上次听到这首」，下次开机就卡在坏文件上。 */
+  try { storeSet("kd_mu_last", ""); } catch (eLast) {}
+  _muPendingPath = String(path);
+  a.src = url;
+  /* V49：必须显式 load()。老安卓 WebView 里只改 src 有时不会真正开始加载，
+     接着 play() 就静默失败 —— 表现正是「UI 说在播、却没有任何声音」。
+     play() 在 Android 4.x 上不返回 Promise，失败也没有回调，所以只能主动重试。 */
+  try { a.load(); } catch (eL) {}
+  muTryPlay(a, 0);
+  muKickPlay(a);
+  musicSyncState();
+}
+/* V50：老 WebView 的 <audio> 常见「改 src + play() 完全没反应」：
+   要么根本不加载，要么加载了不出声，甚至不派发任何 audio 事件。
+   这里给三个并行的推力，哪个先到算哪个：
+     ① load() 重新拉起数据通道   ② 重新赋值 src（新值等于旧值也会重新走一遍加载）
+     ③ 再 play() 一次
+   只在「确实处于暂停」时才动手，绝不打断正在播的歌。 */
+function muKickPlay(a) {
+  if (!a) { return false; }
+  if (!a.src) { return false; }
+  if (!a.paused) { return false; }
+  try { a.load(); } catch (e1) {}
+  try { a.src = a.src; } catch (e2) {}
+  try { a.play(); } catch (e3) {}
+  return true;
+}
+/* V49：带重试的播放。
+   老 WebView 的 play() 静默失败（无 Promise / 无 rejection）时的兜底：
+   等 canplay / loadeddata 再试一次，另外按 150ms 递进重试若干次。
+   一旦确认真的出声（paused === false）就立即停止重试。 */
+function muTryPlay(a, attempt) {
+  if (!a) { return; }
+  var done = function () { return !!(a && a.src && !a.paused); };
+  try {
+    a.play();
+    if (done()) { return; }
+  } catch (eP) {}
+  if (attempt >= 12) { return; }   /* 约 2 秒仍不放，交给 error 监听 / 看门狗去处理 */
+  if (attempt === 0) {
+    /* 数据一到就再补一次 play，这是老 WebView 最有效的一次机会 */
+    var kick = function () {
+      try { a.play(); } catch (e1) {}
+      try { a.removeEventListener("canplay", kick, false); } catch (e2) {}
+    };
+    try { a.addEventListener("canplay", kick, false); } catch (e3) {}
+    try { a.addEventListener("loadeddata", kick, false); } catch (e4) {}
+  }
+  setTimeout(function () { if (!done()) { muTryPlay(a, attempt + 1); } }, 150);
+}
+/* V50：播放看门狗（applyTimers 里每秒一次）。
+   老 WebView 上 audio 事件常不派发，只靠事件驱动的 UI 会卡在旧状态。
+   这里以 a.paused / a.currentTime 这两个客观事实为准：
+     · 在出声   -> _muSounded = true，把「上次听到哪」落记忆，刷新 UI
+     · 该响没响 -> 限频重试（最多 12 次），仍不响才认坏文件、报一次警、跳下一首
+   重试上限刻意保守：解不了的格式（ape/wma 等）1~2 秒内就能判定，
+   不会让界面看起来像卡住了。 */
+function muWatchTick() {
+  var a = muAudioEl();
+  /* =========================================================================
+     V53：音乐续播改由**页面看门狗驱动**，不再指望原生 onCompletion。
+     -----------------------------------------------------------------------
+     重新逐字反编译 onCompletion(260 units) 后的**更正结论**（V51 的注释读反了
+     一个跳转方向，这里是准确版）：
+
+        0092: if-ge v5, v0, +007h
+              v5 = index,  v0 = LIST.size() - 1
+              if-ge 成立（index <= size-2，即「不是最后一首」）
+                  -> 跳到 0x00a0：releasePlayer() + curPath="" + 通知「已播完」
+              if-ge 不成立（index == size-1，即「最后一首」）
+                  -> 落到 0x0096：next(ctx)
+
+     而 next(ctx) 内部（154 units）又是：
+        0080: if-lt v2, v0, +003h     v2 = index+1, v0 = size
+              index+1 < size -> 0086: playIndex(index+1)
+              index+1 >= size -> 0090: return（什么都不做）
+
+     ⇒ 合起来：**无论 index 在哪，播完都会停**。
+        不是最后一首 -> 直接 releasePlayer()；
+        是最后一首   -> next() 内部越界，静默 return。
+     这才是「播一首就停」的**真正**原因，跟推 playlist 还是 folder 无关
+     （mode=1 会走 shuffleNext、mode=2 会单曲重复、mode=3/4 走 wrapNext，
+       而 wrapNext 的内部同样有 index+1 越界检查，同样会停）。
+
+     结论：**原生的「自动续播」这条链在任何 mode 下都不可用**，
+     不能把续播托付给它。改为页面每秒轮询 musicStatus()：
+       检测到「用户还想听(_muWantPlay)」+「原生已经不播了(nb[0]!=="1")」
+               + 「index 还在合法范围」
+       就用 KindleBridge.musicPlayIndex(index+1) 手动续播下一首。
+     musicPlayIndex -> KdMusicService.playIndex(I) -> open(i,0,true)，
+     **直接开播、完全不经 mode 分支**，所以这条路是通的。
+     ========================================================================= */
+  if (_muNative) {
+    var nb = muNativeStatus();
+    if (nb && nb.length >= 13) {
+      var nplaying = (nb[0] === "1");
+      var nidx = parseInt(nb[5], 10);
+      var nsize = parseInt(nb[6], 10);
+      if (nplaying) {
+        /* 确实在播：刷新记忆，并清掉续播状态机 */
+        _muSounded = true;
+        _muNativeMiss = 0;
+        _muMpStop = 0;          /* V53：在播 -> 连续「停了」计数归零 */
+        if (nidx >= 0 && _muList && nidx < _muList.length) {
+          _muIdx = nidx;
+          muSetLast(_muList[nidx]);
+        }
+      } else {
+        _muSounded = false;
+        /* ---- V53：续播判定 ----
+           只在「用户想听 + 不是刚暂停 + 原生报的 index 合法 + 列表有多首」时续播。
+           连按 _muMpStop 累计到 2 次才动手，避免原生切曲瞬间的短暂 not-playing 误触发。 */
+        if (_muWantPlay && nidx >= 0 && nsize > 0 && _muList && _muList.length > 1) {
+          _muMpStop++;
+          if (_muMpStop >= 2) {
+            _muMpStop = 0;
+            var nextIdx = (muCfg().mode === "shuffle")
+                        ? muPickRandom()
+                        : ((nidx + 1) % _muList.length);
+            if (muNativePlayIndex(nextIdx)) {
+              _muIdx = nextIdx;
+              muSetLast(_muList[nextIdx]);
+              try { kdToast("MUSIC：" + muBaseName(_muList[nextIdx])); } catch (eTN) {}
+            }
+          }
+        } else {
+          _muMpStop = 0;
+        }
+      }
+    }
+    musicSyncState();
+    return;
+  }
+  if (!a) { return; }
+  if (!a.currentSrc && !a.src) {
+    if (_muWantPlay && _muList && _muList.length) { muPlayFile(_muList[_muIdx >= 0 ? _muIdx : 0]); }
+    else { musicSyncState(); }
+    return;
+  }
+  var t = 0;
+  try { t = a.currentTime || 0; } catch (eT) { t = 0; }
+  var hasData = false;
+  try { hasData = (a.readyState >= 2); } catch (eR) { hasData = false; }
+  var live = (!a.paused && (t > 0 || hasData));
+  if (live) {
+    _muSounded = true;
+    _muRetryCnt = 0;
+    _muDeadCnt = 0;   /* V50：确实出声了，连败计数归零 */
+    if (_muPendingPath) { muSetLast(_muPendingPath); }
+    musicSyncState();
+    return;
+  }
+  if (_muWantPlay) {
+    var now = new Date().getTime();
+    if (now >= _muRetryAt) {
+      if (_muRetryCnt < 12) {
+        _muRetryCnt++;
+        _muRetryAt = now + 700;
+        muKickPlay(a);
+      } else if (!_muWarned) {
+        /* 试了 8 秒还不出声：老 WebView 解不了这个格式。说清楚原因，别再默默跳歌 */
+        _muWarned = true;
+        _muPendingPath = "";
+        _muSounded = false;
+        _muDeadCnt++;   /* V50：这是一首「确定解不了」的，计数只加在这里（不受换曲清零影响） */
+        try { muMsg("这首打不开（格式本机解码器不支持）：" + muBaseName(a.src)); } catch (eM) {}
+        try { kdToast("MUSIC：这首解不了，自动跳过"); } catch (eT2) {}
+        if (_muList && _muList.length > 1 && _muDeadCnt < _muList.length) {
+          /* 还有没试过的 -> 换下一首继续试。上限是「列表长度」：
+             整个文件夹都解不了时才停，不会在同一个文件上来回打转。 */
+          _muIdx = (_muIdx + 1) % _muList.length;
+          muPlayFile(_muList[_muIdx]);
+          return;
+        }
+        _muWantPlay = false;   /* 全列表都解不了：停下来，不无限跳，让按钮恢复白色 */
+      }
+    }
+  }
   musicSyncState();
 }
 /* 在 _muList 里随机挑一首 */
@@ -11458,24 +11807,25 @@ function muPickRandom() {
   if (!_muList.length) { return 0; }
   return Math.floor(Math.random() * _muList.length);
 }
-/* 单击 MUSIC 的统一入口：载入默认文件夹 -> 按模式开播。
-   V39：默认目录扫不到歌时，按 MU_FALLBACK_DIRS 逐个再探（H9 各家挂载点不同）；
-        仍旧扫不到就交给原生播放器（原生 MediaPlayer 自己扫目录，最稳）。 */
+/* 单击 MUSIC 的统一入口。
+   V51：改回「原生播放器打底、页面 <audio> 兜底」——对照 760（能出声的那版）找到的真因：
+     760 走的正是 `KindleBridge.musicPlay()` 这条原生通道，页面 <audio> 那条路**在 760 里
+     压根没被走到**。而它当时的注释就写着实测结论：
+       「页面内 <audio> 在 WebView 里常被 file:// 跨域访问拦掉、点了没声」。
+     V48 把这条路删掉、改成强制走页面 <audio>，等于主动踩进了这个已知的坑 ——
+     这就是 762 之后「显示在播却完全没声音」的根因。
+   V51 同时解决原生「只播一首」的老毛病，靠的是纠正档位编号（见 muPushModeToNative）：
+     推 "playlist" 让原生 mode 字段 = 0，而 onCompletion 里**只有 mode==0 会走 0072 段的
+     next() 续播**（mode==3/4 走 wrapNext、mode==1 走 shuffleNext、mode==2 单曲重复）。
+   所以：原生负责出声 + 续播，页面只负责扫描目录、显示状态、认记忆起点。 */
 function musicStartLoop() {
+  if (muModBlocked()) { try { kdToast('音乐模块已关闭'); } catch (e) {} return; }
+  muStartDurTimer();   /* V808：一次播放会话开始，启动/重启时长倒计时 */
   var c = muCfg(), i;
-  /* H9/Android：有原生桥就直接交给原生 MediaPlayer 播（它能直接读 file://，
-     而页面内 <audio> 在 WebView 里常被 file:// 跨域访问拦掉、点了没声）。
-     无桥（纯浏览器）才走页面 <audio> 路径。 */
-  if (muHasBridge() && window.KindleBridge.musicPlay) {
-    try {
-      muPushPlaylist();
-      window.KindleBridge.musicPlay(JSON.stringify({ dir: c.dir, playlist: c.playlist, mode: c.mode }));
-      muMsg("已交给原生播放器：" + c.dir);
-      try { kdToast("MUSIC：开始播放 " + c.dir); } catch (eT0) {}
-      musicSyncState();
-      return;
-    } catch (eP) {}
-  }
+  /* V51：有原生桥就交给原生播放（这是唯一被实测证明能出声的通道）。
+     页面 <audio> 只在无桥（纯浏览器调试）时兜底。
+     注意：**交接之前必须先扫一遍目录填好 _muList** —— 否则原生报回的 index
+     没法映射成全路径，「记住上次听到哪」就失效了（V51 首版就是这个毛病）。 */
   if (!_muList.length) { muLoadFolder(c.dir); }
   if (!_muList.length) {
     for (i = 0; i < MU_FALLBACK_DIRS.length && !_muList.length; i++) {
@@ -11483,17 +11833,163 @@ function musicStartLoop() {
       if (muLoadFolder(MU_FALLBACK_DIRS[i]) > 0) { c.dir = MU_FALLBACK_DIRS[i]; muSave(c); }
     }
   }
+  if (muHasBridge() && window.KindleBridge.musicPlay) {
+    if (muNativeStart(c)) { return; }
+    /* 原生这条路没走通 -> 继续往下走页面 <audio> 兜底，不直接 return */
+  }
   if (!_muList.length) {
     muMsg("没找到可播放的音乐，请到设置里用【浏览】指定一个放音乐的文件夹");
     try { kdToast("MUSIC：没找到音乐，请先到设置里指定文件夹"); } catch (eT1) {}
     return;
   }
+  /* V47：先按模式在页面端把原生挡位设好，再决定从哪首开始 */
+  muPushModeToNative(c.mode);
   _muLoop = true;
   _muErrCnt = 0;
-  _muIdx = (c.mode === "shuffle") ? muPickRandom() : 0;   /* 整个文件夹循环 = 从第一首开始 */
+  _muWantPlay = true;   /* V50：整张列表循环播放 = 用户意图「要听」 */
+  /* V47：有记忆就从记忆那首接着放；没记忆才按模式挑起点 */
+  var _lastPath = muGetLast();
+  var _li = (_lastPath && _muList.length) ? _muList.indexOf(_lastPath) : -1;
+  if (_li >= 0) { _muIdx = _li; }
+  else { _muIdx = (c.mode === "shuffle") ? muPickRandom() : 0; }
   if (_muIdx < 0) { _muIdx = 0; }
   muPlayFile(_muList[_muIdx]);
-  try { kdToast("MUSIC：" + muBaseName(_muList[_muIdx])); } catch (eT2) {}
+  try {
+    kdToast("MUSIC：" + muBaseName(_muList[_muIdx]) +
+            (_li >= 0 ? "（接着上次）" : ""));
+  } catch (eT2) {}
+}
+/* V51：交给原生 KdMusicService 播放。顺序很关键，错一步效果就被后一步吃掉：
+     ① setDir      —— 告诉它扫哪个目录
+     ② setPlaylist —— 把本层文件灌进去（可选，目录扫描本身也够）
+     ③ setModeName("playlist") —— 校正档位：modeOf("playlist") = 0，这是 onCompletion
+        唯一会走 next() 续播的值。原来传 "folder"（= 4）会落进 wrapNext 分支。
+     ④ musicPlay("") —— 触发 playStart("")，内部按 dir 扫描并按 mode 决定从哪首开播。
+   返回 true 表示「已经交给原生，别再走页面 <audio>」。 */
+function muNativeStart(c) {
+  try {
+    if (!window.KindleBridge.musicPlay) { return false; }
+    var dir = c.dir || MU_DEFAULT_DIR;
+    try { if (window.KindleBridge.musicSetDir) { window.KindleBridge.musicSetDir(dir); } } catch (e1) {}
+    /* 把已载入的文件列表推给原生（有则推，没有也不影响目录扫描） */
+    try {
+      if (window.KindleBridge.musicSetPlaylist && _muList && _muList.length) {
+        window.KindleBridge.musicSetPlaylist(_muList.join(String.fromCharCode(10)));
+      }
+    } catch (e2) {}
+    /* V53 更正：档位编号其实**不影响续播**（onCompletion 在任何 mode 下播完都会停，
+       详见 muWatchTick 顶部的字节码分析）。这里仍然推 playlist/shuffle，
+       目的是让原生内部状态干净、并让 status() 报出的 mode 字段符合预期；
+       真正的续播一律交给页面看门狗 + musicPlayIndex 完成。 */
+    try {
+      if (window.KindleBridge.musicSetModeName) {
+        window.KindleBridge.musicSetModeName(c.mode === "shuffle" ? "shuffle" : "playlist");
+      }
+    } catch (e3) {}
+    var okPlay = window.KindleBridge.musicPlay("");
+    _muNative = true;        /* 标记「当前播放由原生负责」，页面 <audio> 不再插手 */
+    _muWantPlay = true;
+    _muSounded = false;      /* 出声与否由 musicStatus 轮询确认 */
+    _muNativeMiss = 0;
+    _muMpStop = 0;           /* V53：新的一轮播放，续播状态机归零 */
+    muMsg("已交给原生播放器：" + dir + "（模式：" +
+          (c.mode === "shuffle" ? "随机" : "整个文件夹循环") + "）");
+    try { kdToast("MUSIC：开始播放 " + dir); } catch (eT0) {}
+    try { muNativeSync(0); } catch (eS) {}   /* 延迟确认真的出声了 */
+    musicSyncState();
+    return true;
+  } catch (eP) {
+    _muNative = false;
+    return false;
+  }
+}
+/* V51：轮询原生播放状态，把「是否出声 / 播到哪首」同步到页面。
+   status() 字段（反编译逐段核对）：
+     0 isPlaying | 1 displayName | 3 duration | 4 position | 5 index | 6 LIST.size
+     7 mode | 8 dir | 9 src | 10 PLIST.size | 11 FOLDER.size | 12 modeName
+   ★ 所有出口都必须有落点：确认出声 -> 收工；确认没接住 -> 退回页面 <audio>。
+     首版漏掉了「重试次数用尽」的分支，status() 返回空串时会一直卡在原生通道上、
+     页面 <audio> 永不接管 -> 用户彻底无声。这里每个分支都收敛。 */
+function muNativeSync(tries) {
+  if (!_muNative) { return; }
+  var b = muNativeStatus();
+  var ok3 = !!(b && b.length >= 13);
+  if (ok3 && b[0] === "1") {
+    /* 原生确实在播 -> 收工 */
+    _muSounded = true;
+    _muNativeMiss = 0;
+    try {
+      var nm = b[1] || "";
+      var idx = parseInt(b[5], 10);
+      if (idx >= 0 && _muList && idx < _muList.length) {
+        _muIdx = idx;
+        muSetLast(_muList[idx]);
+      } else if (nm && _muList) {
+        for (var k = 0; k < _muList.length; k++) {
+          if (muBaseName(_muList[k]) === nm) { _muIdx = k; muSetLast(_muList[k]); break; }
+        }
+      }
+    } catch (eN) {}
+    musicSyncState();
+    return;
+  }
+  /* 还没在播（原生启动有延迟）：继续确认，直到用尽次数 */
+  if (tries < 10) {
+    _muNativeMiss++;
+    setTimeout(function () { try { muNativeSync(tries + 1); } catch (e) {} }, 500);
+    return;
+  }
+  /* ★ 次数用尽仍未出声 -> 判定「原生没接住」，退回页面 <audio>。
+     不管 status() 是空串、返回长度不足、还是明确报 0，都在这里收敛。 */
+  if (!_muSounded) {
+    _muNative = false;
+    _muNativeMiss = 0;
+    muMsg("原生播放器没有响应，改用页面播放器重试");
+    try { kdToast("MUSIC：原生播放器没响应，已切换播放方式"); } catch (eF) {}
+    muNativeFallback();
+  }
+}
+function muNativeStatus() {
+  try {
+    if (window.KindleBridge && window.KindleBridge.musicStatus) {
+      return String(window.KindleBridge.musicStatus() || "").split("|");
+    }
+  } catch (e) {}
+  return null;
+}
+/* V53：按索引直接开播（续播的关键）。
+   musicPlayIndex(I) -> KdMusicService.playIndex(I) -> open(index, 0, true)
+   open() 内部自己做 releasePlayer + new MediaPlayer + setAudioStreamType(3)
+   + setDataSource + prepare + start，**完全不经 mode 分支**，
+   所以不受 onCompletion 那套「播完必停」逻辑影响。 */
+function muNativePlayIndex(i) {
+  try {
+    if (!(window.KindleBridge && window.KindleBridge.musicPlayIndex)) { return false; }
+    if (_muList && _muList.length) {
+      /* 先确保原生 LIST 里装的就是我们的清单（否则 index 对不上号） */
+      try {
+        if (window.KindleBridge.musicSetPlaylist) {
+          window.KindleBridge.musicSetPlaylist(_muList.join(String.fromCharCode(10)));
+        }
+      } catch (eSP) {}
+    }
+    return !!window.KindleBridge.musicPlayIndex(i);
+  } catch (e) {}
+  return false;
+}
+/* 原生没接住时的兜底：用页面 <audio> 把列表放起来 */
+function muNativeFallback() {
+  var c = muCfg();
+  if (!_muList.length) { muLoadFolder(c.dir); }
+  if (!_muList.length) { return; }
+  _muLoop = true;
+  _muErrCnt = 0;
+  _muWantPlay = true;
+  var last = muGetLast();
+  var li = (last && _muList.length) ? _muList.indexOf(last) : -1;
+  _muIdx = (li >= 0) ? li : ((c.mode === "shuffle") ? muPickRandom() : 0);
+  if (_muIdx < 0) { _muIdx = 0; }
+  muPlayFile(_muList[_muIdx]);
 }
 function muAudioHook() {
   if (_muAudioHooked) { return; }
@@ -11502,7 +11998,10 @@ function muAudioHook() {
   _muAudioHooked = true;
   try {
     a.addEventListener("ended", function () {
-      /* V37：文件夹随机循环（设备音频）——优先 */
+      /* V47：一首放完了（无论是用户自己点的暂停/继续，还是自动续播），
+         先把「这一首已经播过」落进记忆，再决定下一首。 */
+      if (_muPendingPath) { muSetLast(_muPendingPath); }
+      if (!_muWantPlay) { musicSyncState(); return; }   /* V50：用户已经按停了，别自动接着播 */
       if (_muList && _muList.length) {
         if (_muLoop) {
           /* V39：两种模式 —— 随机＝再抽一首；整个文件夹循环＝顺序下一首，到底回到第一首 */
@@ -11523,24 +12022,42 @@ function muAudioHook() {
       muAudioPlay((_muAudioIdx + 1) % n);
     }, false);
     /* V39：真正出声了才把失败计数清零（放在 muPlayFile 里清零会让下面的护栏失效、无限重试） */
-    a.addEventListener("playing", function () { _muErrCnt = 0; }, false);
-    /* V40：当前曲目打不开 —— 先让原生 MediaPlayer 试一次（ape / wma / amr 这类
-       老 WebView 解不了、但设备解码器可能支持的格式），原生也失败才跳过，最多连跳 3 首。 */
+    a.addEventListener("playing", function () {
+      _muErrCnt = 0;
+      _muSounded = true;   /* V50：事件到了就置位（看门狗每秒复核一次，事件丢也不怕） */
+      _muRetryCnt = 0;     /* V50：出声了，本曲重试计数归零 */
+      /* V47：确认这曲真的响过了，才把它记成「上次听到的」——
+         记在尝试播放的时刻是错的：加载失败也会被记下，下次开机就卡死。 */
+      if (_muPendingPath) { muSetLast(_muPendingPath); }
+      musicSyncState();
+    }, false);
+    /* V50：暂停 / 停止 —— 老 WebView 里 pause() 未必派发 pause 事件，
+       所以这里只是「加速器」；真正的状态认定交给每秒一次的看门狗。 */
+    a.addEventListener("pause", function () {
+      _muSounded = false;
+      musicSyncState();
+    }, false);
+    a.addEventListener("stalled", function () {
+      _muSounded = false;
+      musicSyncState();
+    }, false);
+    /* V40：当前曲目打不开 —— 老 WebView 解不了的格式（ape / wma / amr 等）直接跳过。
+       V48：不再交给原生 MediaPlayer 兜底 —— 原生播完一首必定停（见 musicStartLoop 注释），
+       交过去会把「只播一首」的毛病重新引回来，宁可跳过这一首继续走完列表。 */
     a.addEventListener("error", function () {
+      /* V47：这一首放不出来 -> 绝不能把它记成「上次听到的」，否则下次开机又卡在这里。
+         好消息是记忆本来就只在 playing 里写，这里只需要把「待确认」清掉。 */
+      _muPendingPath = "";
+      _muSounded = false;   /* V50：没出声，UI 不许渲染成「播放中」 */
+      _muDeadCnt++;         /* V50：确定解不了，连败计数 +1 */
       try { storeSet("kd_mu_last", ""); } catch (eEr) {}
-      if (_muList && _muList.length) {
-        var pErr = _muList[_muIdx];
-        if (pErr && _muNativeTried !== pErr && muNativePlay(pErr)) {
-          _muNativeTried = pErr;
-          muMsg("该格式页面解不了，已交给设备播放器：" + muBaseName(pErr));
-          return;
-        }
-      }
-      if (_muList && _muList.length > 1 && _muErrCnt < 3) {
-        _muErrCnt++;
+      if (_muWantPlay && _muList && _muList.length > 1 && _muDeadCnt < _muList.length) {
         _muIdx = (_muIdx + 1) % _muList.length;
         muPlayFile(_muList[_muIdx]);
+        return;
       }
+      if (_muWantPlay) { _muWantPlay = false; }   /* V50：全列表都打不开就别再挂着「想听」 */
+      musicSyncState();
     }, false);
   } catch (e) {}
 }
@@ -11593,7 +12110,16 @@ function muAudioPrev() {
 function muAudioToggle() {
   var a = muAudioEl();
   if (!a || !a.src) { muAudioStart(muCfg().mode); return; }
-  if (a.paused) { try { a.play(); } catch (e) {} } else { try { a.pause(); } catch (e) {} }
+  if (a.paused) {
+    _muWantPlay = true; _muRetryCnt = 0; _muRetryAt = 0;
+    try { a.load(); } catch (eL) {}
+    try { a.play(); } catch (e) {}
+    muKickPlay(a);
+  } else {
+    try { a.pause(); } catch (e) {}
+    _muWantPlay = false;   /* V50：暂停同时清意图与出声位，否则 MUSIC 键一直深色摘不掉 */
+    _muSounded = false;
+  }
   musicSyncState();
 }
 function muFilePicked(input) {
@@ -11631,28 +12157,188 @@ function muAddCurDir(btn) {
 /* V39：前台 MUSIC 单击 —— 正在播（或暂停）就 暂停/继续；
    没在播但记得上次播过哪首，就先恢复那一首；否则按当前模式播整个默认文件夹。 */
 function musicButtonClick() { muSmartClick(); }
-function muSmartClick() {
+
+/* ===== V803：音乐模块总开关 + MUSIC 按钮双击/长按手势 ===== */
+var MU_MODULE_ON = 1;
+function muModBlocked() { return (MU_MODULE_ON !== 1); }
+function muModuleInit() {
+  try {
+    var v = (window.KindleBridge && window.KindleBridge.getPref) ? window.KindleBridge.getPref('musicModuleOn') : null;
+    if (v === null || v === '' || v === undefined) { MU_MODULE_ON = 1; }
+    else { MU_MODULE_ON = (parseInt(v, 10) === 1) ? 1 : 0; }
+  } catch (e) { MU_MODULE_ON = 1; }
+  var cb = document.getElementById('muModuleOn');
+  if (cb) { cb.checked = (MU_MODULE_ON === 1); }
+  muModStatePaint();
+}
+function muModuleToggle(on) {
+  MU_MODULE_ON = on ? 1 : 0;
+  try { if (window.KindleBridge && window.KindleBridge.setPref) { window.KindleBridge.setPref('musicModuleOn', on ? '1' : '0'); } } catch (e) {}
+  muModStatePaint();
+  if (!on) {
+    try { if (window.KindleBridge && window.KindleBridge.musicStop) { window.KindleBridge.musicStop(); } } catch (e) {}
+    _muWantPlay = false;
+    if (_muDurTimer) { try { clearTimeout(_muDurTimer); } catch (eT) {} _muDurTimer = null; }   /* V808：关模块同时撤掉时长倒计时 */
+    try { muBtnPaint(false); } catch (e) {}
+  }
+  try { kdToast(on ? '音乐模块：已开启' : '音乐模块：已关闭'); } catch (e) {}
+}
+function muModStatePaint() {
+  var x = document.getElementById('muModState');
+  if (x) { x.textContent = (MU_MODULE_ON === 1) ? '（开启）' : '（关闭）'; }
+}
+/* 单击=播放/暂停；双击=下一首；长按=上一首 */
+var _muTapCount = 0, _muTapT = null, _muLongT = null, _muLongDone = false, _muTouchUsed = false;
+function muBtnDown(e) {
+  try { if (e && e.preventDefault) { e.preventDefault(); } } catch (_) {}
+  if (e && e.type && e.type.indexOf('touch') === 0) { _muTouchUsed = true; }
+  else if (_muTouchUsed) { return; }
+  _muLongDone = false;
+  clearTimeout(_muLongT);
+  _muLongT = setTimeout(function () {
+    _muLongDone = true;
+    if (MU_MODULE_ON === 1) { try { musicPrev(); } catch (eP) {} }
+  }, 550);
+}
+function muBtnUp(e) {
+  if (e && e.type && e.type.indexOf('touch') === 0) { _muTouchUsed = true; }
+  else if (_muTouchUsed && e && e.type && e.type.indexOf('mouse') === 0) { clearTimeout(_muLongT); return; }
+  clearTimeout(_muLongT);
+  if (_muLongDone) { return; }
+  _muTapCount++;
+  if (_muTapCount === 1) {
+    clearTimeout(_muTapT);
+    _muTapT = setTimeout(function () {
+      _muTapCount = 0;
+      if (MU_MODULE_ON === 1) { try { musicButtonClick(); } catch (eC) {} }
+    }, 320);
+  } else if (_muTapCount === 2) {
+    clearTimeout(_muTapT); _muTapCount = 0;
+    if (MU_MODULE_ON === 1) { try { musicNext(); } catch (eN) {} }
+  }
+}
+function muBtnCancel() { clearTimeout(_muLongT); }
+function muWireMusicButton() {
+  var b = document.getElementById('btnMusic');
+  if (!b) { return; }
+  b.onclick = null;
+  b.addEventListener('touchstart', muBtnDown, false);
+  b.addEventListener('touchend', muBtnUp, false);
+  b.addEventListener('touchcancel', muBtnCancel, false);
+  b.addEventListener('mousedown', muBtnDown, false);
+  b.addEventListener('mouseup', muBtnUp, false);
+  b.addEventListener('mouseleave', muBtnCancel, false);
+}
+
+/* =========================================================================
+V52：MUSIC 按键的「深浅」统一出口 —— 参照 Radio 的三态写法
+  .btn-music          = 白底（没在放 / 已暂停，虚线框）
+  .btn-music playing  = 深色（正在播）
+Radio 那边是 btn-radio / btn-radio on / btn-radio pause 三处直接写 className；
+音乐这边曾经在多个地方各写一遍 className（整串覆盖），任何一处漏判都会让
+按键卡在深色回不来。这里收敛成一个函数：只按一个布尔值决定深浅，
+全库只有这一处写 btnMusic 的类名。
+   ========================================================================= */
+function muBtnPaint(playing) {
+  var btn = document.getElementById("btnMusic");
+  if (!btn) { return; }
+  var want = "btn-music" + (playing ? " playing" : " pause");
+  if (btn.className !== want) { btn.className = want; }
+}
+/* 「现在到底该不该深色」的唯一判据。
+   优先问真实播放状态，问不到才回落用户意图 —— 这样「按一下暂停」必然变白，
+   因为暂停后真实状态已经不是「在播」了，而不是靠某个事件有没有派发。 */
+function muIsActuallyPlaying() {
+  /* ① 原生通道：以 musicStatus() 第 0 字段为准 */
+  if (_muNative) {
+    var nb = muNativeStatus();
+    if (nb && nb.length >= 13) { return (nb[0] === "1"); }
+    return !!_muWantPlay;   /* 查不到就信意图，别把用户按的播放吞掉 */
+  }
+  /* ② 页面 <audio> 通道：以 a.paused 为准（最可靠，不依赖任何事件） */
   var a = muAudioEl();
-  /* 正在用页面 <audio> 播 -> 暂停（仅无桥环境会走到这里） */
-  if (a && a.src && !a.paused) {
-    try { a.pause(); } catch (e1) {}
+  if (a && (a.currentSrc || a.src)) {
+    try { return !a.paused; } catch (e) { return !!_muWantPlay; }
+  }
+  /* ③ 没有音源：意图说了算 */
+  return !!_muWantPlay;
+}
+/* 单击 MUSIC 的统一入口。
+   V52：语义明确为「按一下播放 / 播放中按一下暂停」（与 Radio 单击完全同构）。
+   V51：原生播放器打底、页面 <audio> 兜底——对照 760（能出声的那版）找到的真因：
+     760 走的正是 `KindleBridge.musicPlay()` 这条原生通道，页面 <audio> 那条路
+     **在 760 里压根没被走到**。而它当时的注释就写着实测结论：
+       「页面内 <audio> 在 WebView 里常被 file:// 跨域访问拦掉、点了没声」。
+     V48 把这条路删掉、改成强制走页面 <audio>，等于主动踩进了这个已知的坑 ——
+     这就是 762 之后「显示在播却完全没声音」的根因。
+   V51 同时解决原生「只播一首」的老毛病，靠的是纠正档位编号（见 muPushModeToNative）：
+     推 "playlist" 让原生 mode 字段 = 0，而 onCompletion 里**只有 mode==0 会走 next()**。 */
+function muSmartClick() {
+  if (muModBlocked()) { try { kdToast('音乐模块已关闭'); } catch (e) {} return; }
+  /* ---- 通道一：原生播放器（实测唯一能出声的路）---- */
+  if (_muNative) {
+    var nb = muNativeStatus();
+    var nplaying = !!(nb && nb.length >= 13 && nb[0] === "1");
+    /* 状态查不到（status 返回空/长度不足）时，退回意图判断，避免「越点越乱」 */
+    if (!nplaying && _muWantPlay && !(nb && nb.length >= 13)) { nplaying = true; }
+    if (nplaying) {
+      /* 在播 -> 暂停 */
+      try { if (window.KindleBridge.musicPause) { window.KindleBridge.musicPause(); } } catch (eN1) {}
+      _muWantPlay = false;
+      _muSounded = false;
+      muBtnPaint(false);                 /* V52：暂停立刻回白底，不等原生确认 */
+      kdToast("MUSIC：已暂停 —— 再点一次继续");
+    } else {
+      /* 已暂停（或还没起来）-> 继续 / 开始播放 */
+      var okR = false;
+      try {
+        if (window.KindleBridge.musicResume) { window.KindleBridge.musicResume(); okR = true; }
+      } catch (eN2) { okR = false; }
+      if (!okR) {
+        /* 没有 resume 通道：交回 musicStartLoop 重新起步（会走 musicPlay） */
+        _muWantPlay = true;
+        musicStartLoop();
+        return;
+      }
+      _muWantPlay = true;
+      muBtnPaint(true);                  /* V52：立刻变深色，不等确认 */
+      kdToast("MUSIC：继续播放");
+      /* 延迟确认真起来了；若原生其实没接住，muNativeSync 会兜底切回页面播放器 */
+      try { muNativeSync(0); } catch (eNS) {}
+    }
     musicSyncState();
     return;
   }
-  /* 有原生桥时一律走原生（能读 file://、后台可播）；否则用页面 <audio> 续播/开播 */
-  if (muHasBridge() && window.KindleBridge.musicPlay) {
-    musicStartLoop();
+  /* ---- 通道二：页面 <audio> 兜底（无原生桥 / 原生没接住时）---- */
+  var a = muAudioEl();
+  /* 1) 正在播 -> 暂停 */
+  if (a && (a.currentSrc || a.src) && !a.paused) {
+    try { a.pause(); } catch (e1) {}
+    _muWantPlay = false;
+    _muSounded = false;
+    muBtnPaint(false);                   /* V52：明确摘掉深色 */
+    musicSyncState();
+    kdToast("MUSIC：已暂停 —— 再点一次继续");
     return;
   }
-  if (a && a.src) { try { a.play(); } catch (e0) {} musicSyncState(); return; }
-  var last = "";
-  try { last = storeGet("kd_mu_last") || ""; } catch (e2) { last = ""; }
+  /* 2) 有音源但停着 -> 继续播（老 WebView「暂停后 play() 不响应」靠重新 load 掰开） */
+  if (a && (a.currentSrc || a.src)) {
+    _muWantPlay = true; _muRetryCnt = 0; _muRetryAt = 0;
+    try { a.load(); } catch (eL2) {}
+    try { a.play(); } catch (e0) {}
+    muKickPlay(a);
+    muBtnPaint(true);
+    musicSyncState();
+    kdToast("MUSIC：继续播放");
+    return;
+  }
+  /* 3) 完全没在放 -> 从头/从记忆那首开始 */
+  var last = muGetLast();
+  _muWantPlay = true;
+  musicStartLoop();                      /* 内部会调 muPlayFile 或交接给原生 */
   if (last) {
-    muPlayFile(last);
-    try { kdToast("MUSIC：继续播放 " + muBaseName(last)); } catch (e3) {}
-    return;
+    try { kdToast("MUSIC：接着上次 " + muBaseName(last)); } catch (e3) {}
   }
-  musicStartLoop();
 }
 function muPushPlaylist() {
   if (!muHasBridge()) { return; }
@@ -11662,40 +12348,59 @@ function muPushPlaylist() {
   } catch (e) {}
 }
 function musicQuickPlay() {
-  var c = muCfg();
-  if (muHasBridge()) {
-    try {
-      muPushPlaylist();
-      if (window.KindleBridge.musicSetModeName) { window.KindleBridge.musicSetModeName(c.mode); }
-      else { window.KindleBridge.musicSetMode(muModeCode(c.mode)); }
-    } catch (e0) {}
-    try {
-      window.KindleBridge.musicPlay(JSON.stringify({ dir: c.dir, playlist: c.playlist, mode: c.mode }));
-      muMsg("开始播放（" + muModeName(c.mode) + "）：" +
-            (c.playlist.length ? "清单 " + c.playlist.length + " 首" : c.dir));
-    } catch (e) {
-      muMsg("播放失败：" + e);
-    }
-  } else {
-    muAudioStart(c.mode);
-  }
+  /* V48：不再把播放交给原生（原生 onCompletion 遇到 mode==3 直接跳过续播，只播一首）。
+     统一走页面 <audio>：musicStartLoop 会按模式载入目录、认记忆、并自动续播整张列表。 */
+  musicStartLoop();
   musicSyncState();
 }
 /* V37：统一走 WebView <audio>（即设备自身音频），不再依赖原生 MediaPlayer 前台服务 */
 function musicToggle() {
+  /* V51：原生通道就交给 muSmartClick，避免两套逻辑分叉 */
+  if (_muNative) { muSmartClick(); return; }
   var a = muAudioEl();
   if (!a) { return; }
-  if (a.src && !a.paused) { try { a.pause(); } catch (e) {} musicSyncState(); return; }
-  if (a.src) { try { a.play(); } catch (e) {} musicSyncState(); return; }
+  if (a.src && !a.paused) {
+    try { a.pause(); } catch (e) {}
+    _muWantPlay = false;   /* V50：同上，暂停必须同时清意图与出声位 */
+    _muSounded = false;
+    musicSyncState();
+    return;
+  }
+  if (a.src) {
+    _muWantPlay = true; _muRetryCnt = 0; _muRetryAt = 0;
+    try { a.load(); } catch (eL) {}
+    try { a.play(); } catch (e) {}
+    muKickPlay(a);
+    musicSyncState();
+    return;
+  }
+  _muWantPlay = true;
   musicStartLoop();
 }
 function musicNext() {
+  if (muModBlocked()) { try { kdToast('音乐模块已关闭'); } catch (e) {} return; }
+  /* V51：原生通道直接调原生 next（它自己会按 mode 决定顺序 / 随机） */
+  if (_muNative && window.KindleBridge && window.KindleBridge.musicNext) {
+    try { window.KindleBridge.musicNext(); } catch (eN) {}
+    setTimeout(function () { try { muNativeSync(3); } catch (e) {} }, 600);
+    return;
+  }
   if (!_muList.length) { muLoadFolder(muCfg().dir); }
   if (!_muList.length) { muMsg("当前文件夹没有可播放的音乐"); return; }
-  _muIdx = (_muIdx + 1) % _muList.length;
+  /* V48：随机模式下「下一首」也随机，避免听感上变成顺序播放 */
+  if (muCfg().mode === "shuffle" && _muList.length > 1) { _muIdx = muPickRandom(); }
+  else { _muIdx = (_muIdx + 1) % _muList.length; }
   muPlayFile(_muList[_muIdx]);
+  try { kdToast("MUSIC：" + muBaseName(_muList[_muIdx])); } catch (eN2) {}
 }
 function musicPrev() {
+  if (muModBlocked()) { try { kdToast('音乐模块已关闭'); } catch (e) {} return; }
+  /* V51：原生通道调原生 prev */
+  if (_muNative && window.KindleBridge && window.KindleBridge.musicPrev) {
+    try { window.KindleBridge.musicPrev(); } catch (eP) {}
+    setTimeout(function () { try { muNativeSync(3); } catch (e) {} }, 600);
+    return;
+  }
   if (!_muList.length) { muLoadFolder(muCfg().dir); }
   if (!_muList.length) { muMsg("当前文件夹没有可播放的音乐"); return; }
   _muIdx = (_muIdx - 1 + _muList.length) % _muList.length;
@@ -11724,28 +12429,91 @@ function muOnMode(sel) {
     c.mode = v;
     muSave(c);
     muSetSelect("j-mu-mode", v);
-    if (muHasBridge()) {
-      try {
-        if (window.KindleBridge.musicSetModeName) { window.KindleBridge.musicSetModeName(v); }
-        else { window.KindleBridge.musicSetMode(muModeCode(v)); }
-      } catch (e) {}
-    }
+    muPushModeToNative(v);   /* V47：页面读不到原生的 mode，改一次就得同步一次 */
     var a = muAudioEl();
     if (a) { try { a.loop = false; } catch (eL) {} }   /* V39：没有单曲模式了，循环交给 ended 处理 */
     muMsg("播放模式已设为「" + muModeName(v) + "」（两个面板已同步）");
   } catch (e2) {}
 }
+/* V808：音乐播放时长 —— 到点自动停止（睡眠定时器）。
+   只在「用户发起一次播放会话」时启动（见 musicStartLoop / muPlayCurDir / musicPlayPath），
+   切歌自动续播（muPlayFile / muNativePlayIndex）不会重置它，于是它度量的是
+   「整段聆听会话」的墙钟时长，而非单曲时长。0 = 不限时。 */
+function muStartDurTimer() {
+  try {
+    if (_muDurTimer) { clearTimeout(_muDurTimer); _muDurTimer = null; }
+    var c = muCfg();
+    var d = (typeof c.durationMin === "number") ? c.durationMin : 0;
+    if (d > 0) {
+      _muDurTimer = setTimeout(function () { try { muDurStop(); } catch (e) {} }, d * 60000);
+    }
+  } catch (e) {}
+}
+function muDurStop() {
+  try {
+    if (_muDurTimer) { clearTimeout(_muDurTimer); _muDurTimer = null; }
+    _muWantPlay = false;
+    /* 原生通道：先暂停原生播放器 */
+    if (_muNative && window.KindleBridge && window.KindleBridge.musicPause) {
+      try { window.KindleBridge.musicPause(); } catch (eP) {}
+    }
+    /* 页面 <audio> 通道：暂停 */
+    var a = muAudioEl();
+    if (a) { try { a.pause(); } catch (e) {} }
+    musicSyncState();
+    try { kdToast("音乐播放时长到，已自动停止"); } catch (e) {}
+  } catch (e) {}
+}
+function muDurHuman(min) {
+  if (min <= 0) { return "不限时"; }
+  if (min < 60) { return min + " 分钟"; }
+  var h = Math.floor(min / 60), m = min % 60;
+  return (h + " 小时" + (m ? (" " + m + " 分") : ""));
+}
+/* 设置页 / 弹窗里改时长：立刻写进配置并提示（不必等【保存设置】）。
+   正在播放时立即重启倒计时生效；未播放时下次播放起生效。 */
+function muDurSave(btn) {
+  try {
+    var inp = muSameRowInput(btn, "j-mu-dur");
+    var raw = inp ? String(inp.value || "").trim() : "";
+    var v = parseInt(raw, 10);
+    if (isNaN(v) || v < 0) { v = 0; }
+    if (v > 1440) { v = 1440; }
+    if (inp) { inp.value = v; }
+    var c = muCfg();
+    c.durationMin = v;
+    muSave(c);
+    muSetValAll("j-mu-dur", v);   /* 设置页与弹窗两个实例同步 */
+    var msg = (v > 0)
+      ? ("已保存：播放 " + muDurHuman(v) + "（" + v + " 分钟）后自动停止" + (_muWantPlay ? "（已立即生效）" : "（下次播放起生效）"))
+      : "已保存：不限时（一直循环播放）";
+    muHtmlAll("j-mu-durmsg", msg);
+    try { kdToast(v > 0 ? ("音乐时长已设为 " + muDurHuman(v)) : "音乐时长已设为不限时"); } catch (e) {}
+    if (_muWantPlay) { muStartDurTimer(); }   /* 正在播放则立即生效 */
+  } catch (e) {}
+}
 /* 启动时以原生保存的模式为准，回填到页面 */
+/* V47：status 的字段序（原生 KdMusicService.status 逐段 append）：
+   0 isPlaying | 1 曲名 | 2 空 | 3 时长ms | 4 当前ms | 5 index | 6 LIST大小 |
+   7 mode | 8 dir | 9 src | 10 PLIST大小 | 11 FOLDER大小 | 12 modeName | 13 旧版兼容位
+   13 号位在 V41 之后的包里已经不再写 modeName 了，只认第 7 位（数字挡位），
+   读不到再退回第 12 位。 */
 function muPullModeFromNative() {
   if (!muHasBridge()) { return; }
   try {
     var a = String(window.KindleBridge.musicStatus() || "").split("|");
-    if (a.length >= 14 && a[13]) {
-      var c = muCfg();
-      if (c.mode !== a[13]) { c.mode = a[13]; muSave(c); }
-      muSetSelect("j-mu-mode", a[13]);
-    }
+    if (a.length < 8) { return; }
+    var id = muModeIdByCode(a[7]);
+    var c = muCfg();
+    if (c.mode !== id) { c.mode = id; muSave(c); }
+    muSetSelect("j-mu-mode", id);
   } catch (e) {}
+}
+/* V48：开机只做「UI 与配置对齐」。不再把模式推给原生 —— 播放已全部由页面 <audio> 负责，
+   原生 KdMusicService 只用来扫描目录，推模式过去没有任何效果，反而会误导后来人。 */
+function muSyncOnBoot() {
+  if (!muHasBridge()) { return; }
+  muPullModeFromNative();
 }
 /* V35：必须取「被点的那一行」的输入框 —— 面板有两份实例，
    用全局第一个会读到另一个面板里没改过的旧值，按钮看着就像失效了。 */
@@ -11821,6 +12589,7 @@ function musicBrowse(path) {
   muHtmlAll("j-mu-files", h);
 }
 function musicPlayPath(p) {
+  if (muModBlocked()) { try { kdToast('音乐模块已关闭'); } catch (e) {} return; }
   /* V37：统一走 WebView <audio>（设备自身音频），不再调用原生 musicPlay */
   if (!p) { return; }
   var a = muAudioEl();
@@ -11828,7 +12597,11 @@ function musicPlayPath(p) {
   a.src = (String(p).indexOf("://") >= 0) ? p : ("file://" + (String(p).charAt(0) === "/" ? "" : "/") + p);
   muAudioHook();   /* V40：先挂 listener，老格式才有机会转交原生播放器 */
   _muLoop = true;
-  try { storeSet("kd_mu_last", String(p)); } catch (eLast) {}
+  _muWantPlay = true;   /* V50：点单曲就是要听 */
+  muStartDurTimer();   /* V808：点歌也是一次播放会话，启动时长倒计时 */
+  _muSounded = false;
+  _muPendingPath = String(p);   /* V47：交给 playing 事件确认后再落记忆 */
+  try { storeSet("kd_mu_last", ""); } catch (eLast) {}
   try { a.play(); } catch (e) {}
   muMsg("播放：" + muBaseName(p));
   musicSyncState();
@@ -11893,15 +12666,46 @@ function musicPlayIdx(i) { musicPlayPath(muFullPath(i)); }
 function musicAddIdx(i) { musicAdd(muFullPath(i)); }
 function musicAddDirIdx(i) { musicAddDir(_muDirs[i]); }
 
-/* 当前播放状态：V37 起播放统一走页面 <audio>，优先读它；桥仅作兜底 */
+/* 当前播放状态：V51 起以原生播放器为主（唯一实测能出声的通道），页面 <audio> 仅兜底 */
 function musicSyncState() {
   var txt = "当前播放：—";
-  var playing = false;
+  var playing = false;   /* V52：= 按钮是否深色（真实在播为准，不是「用户想听」） */
+  var sounding = false;  /* = 真的在出声（文案里「播放中」），两个概念分开 */
   var a = muAudioEl();
-  if (a && a.src) {
-    playing = !a.paused;
-    var nm2 = muBaseName(a.src);
-    txt = "当前播放：" + nm2 + "　模式：" + muModeName(muCfg().mode) + (playing ? "（播放中）" : "（暂停）");
+  /* V51：原生通道优先。音乐一旦交给原生，页面 <audio> 是空的，必须从 musicStatus 取状态。 */
+  if (_muNative) {
+    var nb = muNativeStatus();
+    if (nb && nb.length >= 13) {
+      sounding = (nb[0] === "1");
+      /* V52：按键深浅跟「真实在播」走。查得到状态就信状态；
+         状态说没在播而用户想听（比如刚按继续、原生还没起来），才按意图先亮起来。 */
+      playing = sounding ? true : !!_muWantPlay;
+      var nnm = nb[1] || "—";
+      var npos = parseInt(nb[4], 10) || 0;
+      var ntotal = parseInt(nb[3], 10) || 0;
+      txt = "当前播放：" + nnm + "　模式：" + muModeName(muCfg().mode) +
+            (sounding ? "（播放中）" : (_muWantPlay ? "（载入中…）" : "（已暂停）")) +
+            (ntotal > 0 ? "　" + muTimeStr(npos) + "/" + muTimeStr(ntotal) : "");
+      muNow(txt);
+      muBtnPaint(playing);   /* V52：唯一的按键着色出口 */
+      return;
+    }
+    /* 查询失败：退到下面的通用路径 */
+  }
+  if (a && (a.currentSrc || a.src)) {
+    /* V52：按键深浅改为看 a.paused —— 真实播放状态。
+       这直接解决「点暂停后按键一直深色回不来」：暂停后 a.paused 必为 true。 */
+    var aPaused = true;
+    try { aPaused = !!a.paused; } catch (ePz) { aPaused = !_muWantPlay; }
+    playing = !aPaused;
+    /* 文案用「真实出声」判据。老 WebView 上 loadedmetadata 可能永远不来，
+       所以 readyState>0 就认为已就绪，别一直显示「载入中」。 */
+    var rs = 0;
+    try { rs = a.readyState || 0; } catch (eR) { rs = 0; }
+    sounding = _muSounded || rs > 0;
+    var nm2 = muBaseName(a.currentSrc || a.src);
+    txt = "当前播放：" + nm2 + "　模式：" + muModeName(muCfg().mode) +
+          (playing ? (sounding ? "（播放中）" : "（载入中…）") : "（已暂停）");
   } else if (muHasBridge()) {
     try {
       var b = String(window.KindleBridge.musicStatus() || "").split("|");
@@ -11916,8 +12720,31 @@ function musicSyncState() {
     } catch (e) {}
   }
   muNow(txt);
-  var btn = document.getElementById("btnMusic");
-  if (btn) { btn.className = playing ? "btn-music playing" : "btn-music"; }
+  muBtnPaint(playing);   /* V52：唯一的按键着色出口 */
+}
+/* V51：毫秒 -> m:ss，用于状态条显示进度 */
+function muTimeStr(ms) {
+  var t = Math.floor((parseInt(ms, 10) || 0) / 1000);
+  if (t < 0) { t = 0; }
+  var m = Math.floor(t / 60), s = t % 60;
+  return m + ":" + (s < 10 ? "0" : "") + s;
+}
+
+/* V50：开屏自恢复 —— 上次是「在播」状态被系统杀掉的，开机接着放。
+   只在「上次确实播到过半途」时才恢复（currentTime 不为 0 时才会落记忆），
+   所以放完一首就退出的人不会被莫名吵到。
+   延迟 3.2 秒：避开 boot 的版面拟合与新闻首屏，省得抢资源。 */
+function muAutoResume() {
+  if (_muWantPlay) { return; }        /* 用户自己已经点了播放，别抢 */
+  if (_muBooted) { return; }          /* 本次开机只自恢复一次 */
+  var a = muAudioEl();
+  if (!a || a.src) { return; }        /* 已经在播或已有源，不插手 */
+  if (!muGetLast()) { return; }       /* 从来没有播过什么，不自作主张 */
+  _muBooted = true;
+  try {
+    musicStartLoop();
+    muMsg("已从上次听到的地方继续播放");
+  } catch (eAR) { try { _muBooted = false; } catch (e2) {} }
 }
 
 /* ==========================================================================
@@ -11987,6 +12814,14 @@ function muSurfaceHTML(ns) {
     h += '<div class="mu-row"><button class="mu-btn pri" onclick="muUseCurDir(); return false;">2. 把当前文件夹设为默认</button>' +
          '<button class="mu-btn" onclick="muPlayCurDir(this); return false;">试听这个文件夹</button></div>';
     h += '<div class="mu-hint">支持 ' + MU_SUPPORT_LABEL + '。播放 / 暂停 / 切歌在主页 MUSIC 按钮那边，这里只做设置。</div>';
+    /* V808：音乐播放时长设置（1 分钟 ~ 24 小时，0 = 不限时） */
+    h += '<div class="mu-sec-title">③ 播放时长（到点自动停止）</div>';
+    h += '<div class="mu-row"><span class="mu-lab">播放时长</span>' +
+         '<input type="text" class="j-mu-dur" value="' + escAttr(String(c.durationMin || 0)) + '" placeholder="0" style="width:80px;text-align:center;">' +
+         '<span class="mu-unit">分钟</span>' +
+         '<button class="mu-btn" onclick="muDurSave(this); return false;">保存</button></div>';
+    h += '<div class="mu-hint">1~1440 分钟（约 1 分钟 – 24 小时）。填 0 或留空＝不限时，会一直循环播放。改完点【保存】（正在播放时立即生效）。</div>';
+    h += '<div class="mu-msg j-mu-durmsg"></div>';
     h += '<div class="mu-msg j-mu-msg"></div>';
     return h;
   }
@@ -12108,6 +12943,39 @@ function muBrowseRoot() {
   }
   if (!ok) { muMsg("读不到存储目录，请确认已授予存储权限（本机与常驻 → 检查权限）"); }
 }
+/* V47：把页面上的播放模式推给原生 —— 原生 onCompletion 才是决定「下一首放谁」
+   的地方，页面端只记在 localStorage 里它读不到，所以换模式必须同步过去。 */
+/* V48：模式不再需要推给原生 —— 播放已完全由页面 <audio> 负责（见 musicStartLoop 注释），
+   原生 KdMusicService 在本版只用于扫描目录，它的 mode 字段不参与任何播放决策。
+   保留这个函数是为了不打断 muOnMode 的调用链，内部已改为空实现。 */
+/* V51：把播放模式推给原生。**这里必须传 "playlist" / "shuffle"，绝不能传 "folder"**。
+   反编译 KdMusicService.modeOf 还原的映射（v0 默认值 3，按顺序比较后返回）：
+     playlist / pl      -> 0
+     shuffle  / random  -> 1
+     seq / sequential / order -> 2
+     single   / one     -> 3
+     folder   / dir     -> 4
+     （空 / 无法识别）   -> 3
+   而 onCompletion 的分支是：
+     mode==2 -> 单曲 seekTo(0)+start（单曲重复）
+     mode==3 -> goto 00d4 -> src 检查 + wrapNext()
+     mode==4 -> goto 00d4 -> wrapNext()
+     mode==1 -> shuffleNext()
+     mode==0 -> ★唯一走 0072 段的 next(ctx) 续播
+   所以「整个文件夹循环」要借 playlist 的编号 0 来实现续播；
+   随机播放用 shuffle 的 1，原生自己会 shuffleNext。
+   旧代码传 "folder"（=4）落进 wrapNext 分支，这才是「只播一首」的真因（不是「无法续播」，
+   而是档位编号一直就推错了）。 */
+function muPushModeToNative(mode) {
+  if (!muHasBridge()) { return; }
+  try {
+    if (window.KindleBridge.musicSetModeName) {
+      /* 页面只有两种模式：folder(整个文件夹循环) / shuffle(随机)。
+         folder 借 playlist 的编号 0 -> 原生 onCompletion 会 next() 续播。 */
+      window.KindleBridge.musicSetModeName(mode === "shuffle" ? "shuffle" : "playlist");
+    }
+  } catch (e) {}
+}
 /* 把「当前浏览到的目录」设为默认（设置页的核心动作） */
 function muUseCurDir() {
   var d = _muDir || muValOf("j-mu-dir") || MU_DEFAULT_DIR;
@@ -12118,6 +12986,9 @@ function muUseCurDir() {
   muCurTip();   /* V44：设完立刻把状态条刷新成新目录 */
   if (muHasBridge()) { try { window.KindleBridge.musicSetDir(d); } catch (e) {} }
   _muList = [];   /* 目录变了，已载入的曲库作废 */
+  /* V47：目录换了，「上次听到的那首」就不在这批歌里了 —— 页面的接续点作废，
+     但保留记忆（换回原目录还能接着听）。原生那边的 music_src 也随之失效。 */
+  _muIdx = -1;
   muMsg("默认音乐文件夹已设为：" + d + "（本层 " + _muFiles.length + " 个音频文件）");
   try { kdToast("默认音乐文件夹：" + d); } catch (eT) {}
 }
@@ -12138,23 +13009,26 @@ function muPlayCurDir(btn) {
   var d = _muDir || muValOf("j-mu-dir") || muCfg().dir || MU_DEFAULT_DIR;
   var n = muLoadFolder(d);
   if (!n) { muMsg("这个目录（" + d + "）里没有找到可播放的音频文件"); return; }
+  var c = muCfg();
+  muPushModeToNative(c.mode);   /* V47：先定挡位，再点歌 */
   _muLoop = true;
   _muErrCnt = 0;
-  _muIdx = (muCfg().mode === "shuffle") ? muPickRandom() : 0;
+  _muWantPlay = true;   /* V50：试听也是「要听」 */
+  /* V47：试听也认「上次听到哪儿」，但只认本目录里的那首（换了文件夹不能乱接） */
+  var _lastPath = muGetLast();
+  var _li = (_lastPath && _muList.length) ? _muList.indexOf(_lastPath) : -1;
+  if (_li >= 0) { _muIdx = _li; }
+  else { _muIdx = (c.mode === "shuffle") ? muPickRandom() : 0; }
   if (_muIdx < 0) { _muIdx = 0; }
   muPlayFile(_muList[_muIdx]);
-  muMsg("试听：" + d + "（" + n + " 首）");
+  muStartDurTimer();   /* V808：试听也是一次播放会话，启动时长倒计时 */
+  muMsg("试听：" + d + "（" + n + " 首，从「" + muBaseName(_muList[_muIdx]) + "」开始）");
 }
-/* V40：把某一首交给原生 MediaPlayer（老 WebView 解不了的格式由它兜底） */
-function muNativePlay(path) {
-  if (!path || !muHasBridge() || !window.KindleBridge.musicPlay) { return false; }
-  var p = String(path), k = p.lastIndexOf("/");
-  var par = (k > 0) ? p.substring(0, k) : "/";
-  try {
-    window.KindleBridge.musicPlay(JSON.stringify({ dir: par, file: p }));
-    return true;
-  } catch (e) { return false; }
-}
+/* V48：muNativePlay 已废弃并移除。
+   原用途是把单曲交给原生 MediaPlayer 兜底（解 ape/wma/amr 这类老 WebView 不支持的格式），
+   但原生播完一首必定停在 onCompletion（mode==3 直接跳过续播分支），一旦交过去就把
+   「只播一首」的毛病带回来了。现在整张列表统一由页面 <audio> 负责，遇到解不了的格式
+   直接跳过这一首继续走完列表（见 muAudioHook 的 error 监听）。 */
 
 /* ---------------------- V30i：H9 实体翻页键 -> 后台功能自定义映射 ---------------------- */
 /* 候选键码：上一页键 / 下一页键。覆盖常见电纸书映射：
@@ -12321,6 +13195,13 @@ function kdlInit() {
   try { kdlSyncDisplaySelect(); } catch (eS) {}
   try { kdlSyncHomeScale(); } catch (eH) {}
   try { musicSyncState(); } catch (eM) {}
+  /* V47：播放模式的真源在原生（onCompletion 靠它决定下一首）；
+     开机把挡位与页面选项对齐一次，再把「上次听到哪儿」交给原生续播。 */
+  try { muSyncOnBoot(); } catch (eMS) {}
+  /* V50：上次是在播的状态，开机接着放（见 muAutoResume 注释） */
+  try { setTimeout(function () { try { muAutoResume(); } catch (eAR2) {} }, 3200); } catch (eAR3) {}
+  /* V53：设备电量。首屏先画一次（有原生桥当场就有值，走 Battery API 是异步回调）。 */
+  try { battInit(); } catch (eBI) {}
   /* V30e：原生桥可能晚于首屏才上报设备型号，延迟再判定一次屏幕类型 */
   try {
     if (window.KindleBridge && window.KindleBridge.getDeviceModel) {
@@ -12343,125 +13224,613 @@ function kdlInit() {
      · 「仅一次」响过一次后自动关闭；「每天」「工作日」保持
    存储：kd_alarm_cfg（走 storeGet/storeSet，原生 Pref / localStorage 双通道）
    ========================================================================= */
+/* =========================================================================
+   V53：闹钟（多闹钟版）
+   -------------------------------------------------------------------------
+   与 V30c 单闹钟版本的区别：
+     · 存储由「一个对象」变成「一个列表」{ list: [ {...}, ... ] }，
+       同时兼容迁移旧的单对象存档（kd_alarm_cfg 里直接是 {on,h,m,...}）。
+     · 每条闹钟字段：id / on / h / m / label / repeat / days / sound / last
+         repeat: once | daily | weekday | custom
+         days  : "12345" 形式的星期位（0=周日 ... 6=周六），repeat==custom 才生效
+         sound : 1 响铃 / 0 仅弹窗（静音）
+         last  : 上次响铃的日期戳（"2026-9-29"），用于 once 只响一次
+     · 面板拆成「列表视图」与「编辑视图」两屏，支持新建 / 编辑 / 删除 /
+       一键启停，最多 8 个。
+   存储：kd_alarm_cfg（走 storeGet/storeSet，原生 Pref / localStorage 双通道）
+   ========================================================================= */
 var ALARM_KEY = "kd_alarm_cfg";
-var _alarm = { on: 0, h: 7, m: 30, label: "", repeat: "once", last: "" };
+var ALARM_MAX = 8;
+
+/* 一条空白闹钟的默认值 */
+function alarmBlank() {
+  return {
+    id: "a" + (new Date().getTime()) + "_" + Math.floor(Math.random() * 1000),
+    on: 1, h: 7, m: 30, label: "", repeat: "once", days: "", sound: 1, last: ""
+  };
+}
+
+var _alarm = { list: [] };          /* 全部闹钟 */
+var _alarmEd  = null;               /* 编辑视图正在改的那一条（副本） */
+var _alarmIdx = -1;                 /* 编辑副本对应的下标，-1 = 新建 */
 var _alarmTimer = null;
-var _alarmRinging = 0;
+var _alarmRinging = 0;              /* 1 = 提醒浮层正显示 */
+var _alarmRingId = "";              /* 正在响的是哪一条 */
+
+var AL_DAYNAME = ["日", "一", "二", "三", "四", "五", "六"];
+
+/* 把任意输入规整成一条合法闹钟 */
+function alarmNorm(o) {
+  var a = alarmBlank();
+  if (!o || typeof o !== "object") { return a; }
+  if (o.id) { a.id = String(o.id); }
+  a.on     = (o.on === 0 || o.on === "0" || o.on === false) ? 0 : 1;
+  var h = parseInt(o.h, 10); if (isNaN(h) || h < 0 || h > 23) { h = 7; }
+  var m = parseInt(o.m, 10); if (isNaN(m) || m < 0 || m > 59) { m = 30; }
+  a.h = h; a.m = m;
+  a.label  = String(o.label === undefined || o.label === null ? "" : o.label);
+  var rp = String(o.repeat || "once");
+  if (rp !== "once" && rp !== "daily" && rp !== "weekday" && rp !== "custom") { rp = "once"; }
+  a.repeat = rp;
+  a.days   = alarmNormDays(o.days);
+  if (rp === "weekday" && !a.days) { a.days = "12345"; }
+  a.sound  = (o.sound === 0 || o.sound === "0" || o.sound === false) ? 0 : 1;
+  a.last   = String(o.last || "");
+  return a;
+}
+
+/* 星期位串：只留 0~6、去重、升序 */
+function alarmNormDays(d) {
+  var s = String(d === undefined || d === null ? "" : d), out = "", i, c;
+  for (i = 0; i <= 6; i++) {
+    c = String(i);
+    if (s.indexOf(c) >= 0) { out += c; }
+  }
+  return out;
+}
 
 function alarmLoad() {
+  var list = [];
   try {
     var raw = storeGet(ALARM_KEY);
-    if (!raw) { return; }
-    var o = JSON.parse(raw);
-    if (o && typeof o === "object") {
-      _alarm.on     = o.on ? 1 : 0;
-      _alarm.h      = parseInt(o.h, 10);
-      _alarm.m      = parseInt(o.m, 10);
-      _alarm.label  = String(o.label || "");
-      _alarm.repeat = String(o.repeat || "once");
-      _alarm.last   = String(o.last || "");
+    if (raw) {
+      var o = JSON.parse(raw);
+      if (o && typeof o === "object") {
+        if (o.list && o.list.length !== undefined) {
+          /* 新格式 */
+          for (var i = 0; i < o.list.length && list.length < ALARM_MAX; i++) {
+            list.push(alarmNorm(o.list[i]));
+          }
+        } else if (o.h !== undefined || o.m !== undefined || o.on !== undefined) {
+          /* V30c 单闹钟旧存档 -> 迁移成一条 */
+          var old = alarmNorm(o);
+          /* 旧版只要 on=0 就当作没设置过，避免升级后突然冒出一个关着的闹钟 */
+          list.push(old);
+        }
+      }
     }
   } catch (e) {}
-  if (isNaN(_alarm.h) || _alarm.h < 0 || _alarm.h > 23) { _alarm.h = 7; }
-  if (isNaN(_alarm.m) || _alarm.m < 0 || _alarm.m > 59) { _alarm.m = 30; }
-  if (_alarm.repeat !== "once" && _alarm.repeat !== "daily" && _alarm.repeat !== "weekday") {
-    _alarm.repeat = "once";
-  }
+  _alarm.list = list;
 }
+
 function alarmSave() {
-  try { storeSet(ALARM_KEY, JSON.stringify(_alarm)); } catch (e) {}
+  try { storeSet(ALARM_KEY, JSON.stringify({ list: _alarm.list })); } catch (e) {}
 }
-function alarmText() {
-  return pad2(_alarm.h) + ":" + pad2(_alarm.m);
+
+function alarmFind(id) {
+  for (var i = 0; i < _alarm.list.length; i++) {
+    if (_alarm.list[i].id === id) { return i; }
+  }
+  return -1;
 }
-function alarmRepeatText() {
-  if (_alarm.repeat === "daily")   { return "每天"; }
-  if (_alarm.repeat === "weekday") { return "工作日"; }
+
+/* 列表里「开着的」闹钟数量 */
+function alarmOnCount() {
+  var n = 0;
+  for (var i = 0; i < _alarm.list.length; i++) { if (_alarm.list[i].on) { n++; } }
+  return n;
+}
+
+function alarmText(a) {
+  return pad2(parseInt(a.h, 10)) + ":" + pad2(parseInt(a.m, 10));
+}
+
+function alarmRepeatText(a) {
+  if (a.repeat === "daily")   { return "每天"; }
+  if (a.repeat === "weekday") { return "工作日"; }
+  if (a.repeat === "custom") {
+    var d = alarmNormDays(a.days), i, w = [];
+    if (!d) { return "自定义（未选星期）"; }
+    if (d === "1234560") { return "每天"; }
+    if (d === "12345")   { return "工作日"; }
+    for (i = 0; i < d.length; i++) { w.push("周" + AL_DAYNAME[parseInt(d.charAt(i), 10)]); }
+    return w.join(" ");
+  }
   return "仅一次";
 }
+
+/* 下一次响铃的粗略描述（列表副标题用） */
+function alarmNextText(a) {
+  var rp = alarmRepeatText(a);
+  if (a.repeat === "once") {
+    return a.on ? ("仅一次 · " + rp.replace("仅一次", "到点提醒")) : "已关闭";
+  }
+  return rp;
+}
+
+/* ------------------------------------------------------------------
+   徽标：时间卡片右下角。有开着的闹钟就显示「最近一个」的时刻。
+   ------------------------------------------------------------------ */
+function alarmNextOn() {
+  var best = null, i, a;
+  for (i = 0; i < _alarm.list.length; i++) {
+    a = _alarm.list[i];
+    if (!a.on) { continue; }
+    if (!best) { best = a; continue; }
+    if (a.h * 60 + a.m < best.h * 60 + best.m) { best = a; }
+  }
+  return best;
+}
+
 function alarmBadgeSync() {
   var b = $("alarmBadge");
   var t = $("alarmBadgeTime");
-  if (b) { b.className = _alarm.on ? "alarm-badge on" : "alarm-badge"; }
-  if (t) { t.innerHTML = _alarm.on ? escapeHtml(alarmText()) : ""; }
+  var n = alarmOnCount();
+  var nx = alarmNextOn();
+  if (b) { b.className = (n > 0 && nx) ? "alarm-badge on" : "alarm-badge"; }
+  if (t) {
+    if (n > 0 && nx) {
+      t.innerHTML = escapeHtml(alarmText(nx)) + (n > 1 ? (" +" + (n - 1)) : "");
+    } else {
+      t.innerHTML = "";
+    }
+  }
 }
+
+/* =========================================================================
+   V53：设备电量（与右下方闹钟图标左右对称）
+   -----------------------------------------------------------------------
+   取数优先级（三级降级，全部拿不到就隐藏徽标，绝不上假数字）：
+     ① 原生桥 KindleBridge.getBattery()  —— V806 已实现（读系统 ACTION_BATTERY_CHANGED 粘性广播，level*100/scale）
+     ② navigator.getBattery()             —— Battery Status API（Chrome 38+，
+                                            海信 A5 等现代 WebView 可用）
+     ③ navigator.getBattery() 不可用且无桥 -> 整个徽标 display:none
+   需求「要跟系统的数据一致」⇒ 一律用系统上报的原始 level/scale 换算，
+   不做任何本地估算或缓存美化；数值变化时同步刷新。
+   ========================================================================= */
+var _battBound = false;
+
+function battPaint(pct) {
+  var badge = $("battBadge");
+  var txt = $("battPct");
+  var fill = $("battFill");
+  if (!badge || !txt) { return; }
+  if (pct === null || pct === undefined || isNaN(pct) || pct < 0) {
+    badge.style.display = "none";     /* 拿不到就藏起来，不显示假值 */
+    return;
+  }
+  if (pct > 100) { pct = 100; }
+  var p = Math.round(pct);
+  badge.style.display = "";
+  badge.className = (p <= 20) ? "batt-badge low" : "batt-badge";
+  txt.innerHTML = p + "%";
+  /* 填充条：留出 1px 边框，按剩余可绘制宽度算比例 */
+  if (fill) { fill.style.width = p + "%"; }
+}
+
+function battFromNative() {
+  try {
+    if (window.KindleBridge && window.KindleBridge.getBattery) {
+      var v = parseInt(window.KindleBridge.getBattery(), 10);
+      if (!isNaN(v) && v >= 0) { return v; }
+    }
+  } catch (e) {}
+  return null;
+}
+
+function battInit() {
+  /* ① 原生桥优先（有就用，没有就往下走） */
+  var nv = battFromNative();
+  if (nv !== null) {
+    battPaint(nv);
+    _battBound = true;   /* 原生值也要定期刷新 */
+    return;
+  }
+  /* ② Battery Status API */
+  try {
+    if (navigator && typeof navigator.getBattery === "function") {
+      navigator.getBattery().then(function (b) {
+        var push = function () {
+          try {
+            /* level 是 0~1 的小数，乘 100 就是系统百分比 */
+            battPaint(b.level * 100);
+          } catch (e) {}
+        };
+        push();
+        try { b.addEventListener("levelchange", push); } catch (e1) {
+          try { b.onlevelchange = push; } catch (e2) {}
+        }
+        try { b.addEventListener("chargingchange", push); } catch (e3) {
+          try { b.onchargingchange = push; } catch (e4) {}
+        }
+        _battBound = true;
+      }).catch(function () { battPaint(null); });
+      return;
+    }
+  } catch (e) {}
+  /* ③ 都不行 -> 隐藏 */
+  battPaint(null);
+}
+
+function battTick() {
+  /* 定时兜底刷新：原生桥那条路没有回调，只能靠轮询；
+     Battery API 那条路有事件，这里再刷一次也不会有副作用（幂等写 DOM）。 */
+  var nv = battFromNative();
+  if (nv !== null) { battPaint(nv); return; }
+  try {
+    if (navigator && typeof navigator.getBattery === "function" && !_battBound) {
+      battInit();
+    }
+  } catch (e) {}
+}
+
+/* ------------------------------------------------------------------
+   面板：两个视图切换
+   ------------------------------------------------------------------ */
+function alarmShowList() {
+  var lv = $("alListView"), ev = $("alEditView");
+  if (lv) { lv.style.display = ""; }
+  if (ev) { ev.style.display = "none"; }
+  alarmRenderList();
+}
+
+function alarmShowEdit() {
+  var lv = $("alListView"), ev = $("alEditView");
+  if (lv) { lv.style.display = "none"; }
+  if (ev) { ev.style.display = ""; }
+}
+
+/* 把 0~23 / 0~59 的 option 灌进两个 select（只在首次调用时灌一次） */
+function alarmFillTime() {
+  var hSel = $("alHour"), mSel = $("alMin"), i, o;
+  if (hSel && !hSel.options.length) {
+    for (i = 0; i < 24; i++) {
+      o = document.createElement("option");
+      o.value = String(i); o.textContent = pad2(i);
+      hSel.appendChild(o);
+    }
+  }
+  if (mSel) {
+    if (mSel.tagName === "SELECT") {
+      if (!mSel.options.length) {
+        for (i = 0; i < 60; i++) {
+          o = document.createElement("option");
+          o.value = String(i); o.textContent = pad2(i);
+          mSel.appendChild(o);
+        }
+      }
+    } else if (!mSel._wbuilt) {
+      alWheelBuild(mSel, 0, 59, 0);
+      mSel._wbuilt = 1;
+    }
+  }
+}
+
+
+/* V803：闹钟分钟滚轮选择器（可上下拉动选择，松手吸附到最近值） */
+function alWheelBuild(el, min, max, initial) {
+  if (!el) { return; }
+  el.innerHTML = '';
+  var pad = document.createElement('div');
+  pad.className = 'al-wi al-wi-pad';
+  el.appendChild(pad);
+  for (var i = min; i <= max; i++) {
+    var d = document.createElement('div');
+    d.className = 'al-wi';
+    d.setAttribute('data-v', String(i));
+    d.textContent = pad2(i);
+    d.onclick = (function (val) { return function () { alWheelSet(el, val); }; })(i);
+    el.appendChild(d);
+  }
+  var pad2b = document.createElement('div');
+  pad2b.className = 'al-wi al-wi-pad';
+  el.appendChild(pad2b);
+  el._wval = initial;
+  Object.defineProperty(el, 'value', {
+    get: function () { return String(el._wval); },
+    set: function (v) { alWheelSet(el, parseInt(v, 10) || 0); },
+    configurable: true
+  });
+  alWheelSet(el, initial);
+  el.onscroll = function () { alWheelSnap(el); };
+}
+function alWheelSet(el, v) {
+  el._wval = v;
+  var items = el.getElementsByClassName('al-wi'), i;
+  for (i = 0; i < items.length; i++) { items[i].classList.remove('sel'); }
+  var t = el.querySelector('[data-v="' + v + '"]');
+  if (t) { t.classList.add('sel'); el.scrollTop = t.offsetTop - 66; }
+}
+function alWheelSnap(el) {
+  clearTimeout(el._wsT);
+  el._wsT = setTimeout(function () {
+    var center = el.scrollTop + el.clientHeight / 2;
+    var items = el.getElementsByClassName('al-wi'), best = null, bd = 1e9, i;
+    for (i = 0; i < items.length; i++) {
+      if (items[i].getAttribute('data-v') == null) { continue; }
+      var c = items[i].offsetTop + items[i].offsetHeight / 2;
+      var d = Math.abs(c - center);
+      if (d < bd) { bd = d; best = items[i]; }
+    }
+    if (best) { alWheelSet(el, parseInt(best.getAttribute('data-v'), 10)); }
+  }, 120);
+}
+
+/* 星期圆点：日一二三四五六，点一下切换选中 */
+function alarmFillDays() {
+  var box = $("alDays"), i, d;
+  if (!box || box.getAttribute("data-filled")) { return; }
+  box.setAttribute("data-filled", "1");
+  for (i = 0; i < 7; i++) {
+    d = document.createElement("span");
+    d.className = "ad-dot";
+    d.setAttribute("data-day", String(i));
+    d.innerHTML = AL_DAYNAME[i];
+    d.onclick = function () {
+      var dv = this.getAttribute("data-day");
+      var cur = alarmNormDays($("alDays") ? $("alDays").getAttribute("data-days") : "");
+      if (cur.indexOf(dv) >= 0) {
+        cur = cur.replace(dv, "");
+      } else {
+        cur = alarmNormDays(cur + dv);
+      }
+      alarmPaintDays(cur);
+      return false;
+    };
+    box.appendChild(d);
+  }
+}
+
+function alarmPaintDays(days) {
+  var box = $("alDays");
+  if (!box) { return; }
+  var d = alarmNormDays(days);
+  box.setAttribute("data-days", d);
+  var dots = box.getElementsByTagName("span"), i, dv;
+  for (i = 0; i < dots.length; i++) {
+    dv = dots[i].getAttribute("data-day");
+    dots[i].className = (d.indexOf(dv) >= 0) ? "ad-dot on" : "ad-dot";
+  }
+}
+
+/* repeat 变了：只有 custom 才显示星期行 */
+function alarmSyncDaysRow() {
+  var rp = $("alRepeat") ? $("alRepeat").value : "once";
+  var row = $("alDaysRow"), box = $("alDays");
+  var show = (rp === "custom");
+  if (row) { row.style.display = show ? "" : "none"; }
+  if (box) { box.className = show ? "al-days" : "al-days hide"; }
+  /* 选了「工作日」就顺手把星期一~五打上勾，方便用户切到自定义后微调 */
+  if (rp === "weekday") { alarmPaintDays("12345"); }
+  if (rp === "daily")   { alarmPaintDays("1234560"); }
+}
+
+/* ------------------------------------------------------------------
+   打开面板
+   ------------------------------------------------------------------ */
 function alarmOpen() {
   alarmLoad();
   var p = $("alarmModal");
   if (!p) { return; }
-  if ($("alOn"))     { $("alOn").value     = _alarm.on ? "1" : "0"; }
-  if ($("alHour"))   { $("alHour").value   = String(_alarm.h); }
-  if ($("alMin"))    { $("alMin").value    = String(_alarm.m); }
-  if ($("alRepeat")) { $("alRepeat").value = _alarm.repeat; }
-  if ($("alLabel"))  { $("alLabel").value  = _alarm.label; }
+  alarmFillTime();
+  alarmFillDays();
+  alarmShowList();
   p.className = "show";
 }
 function alarmClose() {
   var p = $("alarmModal");
   if (p) { p.className = ""; }
 }
+function alarmBack() {
+  alarmShowList();
+}
+
+/* 新建 */
+function alarmNew() {
+  if (_alarm.list.length >= ALARM_MAX) {
+    try { kdToast("闹钟最多 " + ALARM_MAX + " 个"); } catch (e) {}
+    return;
+  }
+  var a = alarmBlank();
+  a.h = 7; a.m = 0; a.on = 1; a.repeat = "once";
+  _alarmEd = a;
+  _alarmIdx = -1;
+  alarmShowEdit();
+  alarmFillForm(a, true);
+}
+
+/* 点列表项 -> 编辑 */
+function alarmEdit(id) {
+  var i = alarmFind(id);
+  if (i < 0) { return; }
+  _alarmEd = alarmNorm(_alarm.list[i]);
+  _alarmIdx = i;
+  alarmShowEdit();
+  alarmFillForm(_alarmEd, false);
+}
+
+/* 列表项上的开关：直接启停，不进编辑页 */
+function alarmToggle(id) {
+  var i = alarmFind(id);
+  if (i < 0) { return; }
+  _alarm.list[i].on = _alarm.list[i].on ? 0 : 1;
+  if (_alarm.list[i].on) { _alarm.list[i].last = ""; }
+  alarmSave();
+  alarmBadgeSync();
+  alarmRenderList();
+}
+
+/* 编辑视图的回填 */
+function alarmFillForm(a, isNew) {
+  alarmFillTime();
+  alarmFillDays();
+  if ($("alOn"))     { $("alOn").value     = a.on ? "1" : "0"; }
+  if ($("alHour"))   { $("alHour").value   = String(a.h); }
+  if ($("alMin"))    { $("alMin").value    = String(a.m); }
+  if ($("alRepeat")) { $("alRepeat").value = a.repeat; }
+  if ($("alLabel"))  { $("alLabel").value  = a.label; }
+  if ($("alSound"))  { $("alSound").value  = a.sound ? "1" : "0"; }
+  alarmPaintDays(a.days);
+  alarmSyncDaysRow();
+  var del = $("alDelBtn");
+  if (del) { del.style.display = isNew ? "none" : ""; }
+}
+
+/* 保存编辑视图 -> 写回列表 */
 function alarmApply() {
-  if ($("alOn"))     { _alarm.on     = ($("alOn").value === "1") ? 1 : 0; }
-  if ($("alHour"))   { _alarm.h      = parseInt($("alHour").value, 10); }
-  if ($("alMin"))    { _alarm.m      = parseInt($("alMin").value, 10); }
-  if ($("alRepeat")) { _alarm.repeat = $("alRepeat").value; }
-  if ($("alLabel"))  { _alarm.label  = $("alLabel").value; }
-  if (isNaN(_alarm.h) || _alarm.h < 0 || _alarm.h > 23) { _alarm.h = 7; }
-  if (isNaN(_alarm.m) || _alarm.m < 0 || _alarm.m > 59) { _alarm.m = 30; }
-  _alarm.last = "";
+  var a = _alarmEd || alarmBlank();
+  if ($("alOn"))     { a.on     = ($("alOn").value === "1") ? 1 : 0; }
+  if ($("alHour"))   { a.h      = parseInt($("alHour").value, 10); }
+  if ($("alMin"))    { a.m      = parseInt($("alMin").value, 10); }
+  if ($("alRepeat")) { a.repeat = $("alRepeat").value; }
+  if ($("alLabel"))  { a.label  = $("alLabel").value; }
+  if ($("alSound"))  { a.sound  = ($("alSound").value === "1") ? 1 : 0; }
+  if ($("alDays"))   { a.days   = alarmNormDays($("alDays").getAttribute("data-days")); }
+  if (isNaN(a.h) || a.h < 0 || a.h > 23) { a.h = 7; }
+  if (isNaN(a.m) || a.m < 0 || a.m > 59) { a.m = 30; }
+  if (a.repeat === "weekday" || a.repeat === "daily") {
+    if (!a.days) { a.days = (a.repeat === "daily") ? "1234560" : "12345"; }
+  }
+  /* 改了时刻就清掉「今天已响过」标记，让新时刻当天有机会生效 */
+  a.last = "";
+  if (_alarmIdx >= 0) {
+    _alarm.list[_alarmIdx] = a;
+  } else {
+    if (_alarm.list.length >= ALARM_MAX) {
+      try { kdToast("闹钟最多 " + ALARM_MAX + " 个"); } catch (e) {}
+      return;
+    }
+    _alarm.list.push(a);
+  }
   alarmSave();
   alarmBadgeSync();
-  alarmClose();
+  alarmShowList();
 }
-function alarmClear() {
-  _alarm.on = 0;
-  _alarm.last = "";
+
+/* 删除当前编辑的那一条 */
+function alarmDelete() {
+  if (_alarmIdx < 0) { alarmBack(); return; }
+  _alarm.list.splice(_alarmIdx, 1);
+  _alarmIdx = -1;
+  _alarmEd = null;
   alarmSave();
   alarmBadgeSync();
-  if ($("alOn")) { $("alOn").value = "0"; }
-  alarmClose();
+  alarmShowList();
 }
+
+/* 渲染列表 */
+function alarmRenderList() {
+  var box = $("alList"), empty = $("alEmpty"), cnt = $("alCount");
+  if (!box) { return; }
+  var i, a, html = [];
+  for (i = 0; i < _alarm.list.length; i++) {
+    a = _alarm.list[i];
+    html.push(
+      '<div class="al-item' + (a.on ? "" : " off") + '">' +
+        '<div class="al-i-main" onclick="alarmEdit(\'' + a.id + '\'); return false;">' +
+          '<div class="al-i-time">' + escapeHtml(alarmText(a)) + '</div>' +
+          '<div class="al-i-sub">' + escapeHtml(alarmItemSub(a)) + '</div>' +
+        '</div>' +
+        '<span class="al-sw' + (a.on ? " on" : "") + '" ' +
+              'onclick="alarmToggle(\'' + a.id + '\'); return false;">' +
+          (a.on ? "开" : "关") + '</span>' +
+      '</div>'
+    );
+  }
+  box.innerHTML = html.join("");
+  var n = _alarm.list.length;
+  if (empty) { empty.style.display = n ? "none" : ""; }
+  if (cnt)   { cnt.innerHTML = n ? (n + " 个闹钟 · " + alarmOnCount() + " 个已开") : ""; }
+}
+
+function alarmItemSub(a) {
+  var parts = [];
+  if (a.label) { parts.push(a.label); }
+  parts.push(alarmRepeatText(a));
+  if (!a.sound) { parts.push("静音"); }
+  return parts.join(" · ");
+}
+
+/* ------------------------------------------------------------------
+   到点判定与响铃（逐条遍历）
+   ------------------------------------------------------------------ */
 function alarmTodayStamp(d) {
   return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
 }
-function alarmIsDue(now) {
-  if (!_alarm.on) { return false; }
-  if (now.getHours() !== _alarm.h)   { return false; }
-  if (now.getMinutes() !== _alarm.m) { return false; }
-  if (_alarm.repeat === "weekday") {
-    var w = now.getDay();
-    if (w === 0 || w === 6) { return false; }
+
+/* 这一条今天此刻是否该响 */
+function alarmItemDue(a, now) {
+  if (!a.on) { return false; }
+  if (now.getHours() !== a.h)   { return false; }
+  if (now.getMinutes() !== a.m) { return false; }
+  if (a.repeat === "once") {
+    if (a.last === alarmTodayStamp(now)) { return false; }
+  } else {
+    var d = alarmNormDays(a.days);
+    if (a.repeat === "weekday" && !d) { d = "12345"; }
+    if (a.repeat === "daily"   && !d) { d = "1234560"; }
+    /* custom 但一个都没勾 -> 不响，避免「悄悄天天响」 */
+    if (!d) { return false; }
+    if (d.indexOf(String(now.getDay())) < 0) { return false; }
+    if (a.last === alarmTodayStamp(now)) { return false; }
   }
-  if (_alarm.repeat === "once" && _alarm.last === alarmTodayStamp(now)) { return false; }
   return true;
 }
+
+/* 返回第一条该响的闹钟下标，没有则 -1 */
+function alarmDueIndex(now) {
+  for (var i = 0; i < _alarm.list.length; i++) {
+    if (alarmItemDue(_alarm.list[i], now)) { return i; }
+  }
+  return -1;
+}
+
 function alarmTick() {
   if (_alarmRinging) { return; }
   var now = new Date();
-  if (!alarmIsDue(now)) { return; }
-  _alarm.last = alarmTodayStamp(now);
+  var i = alarmDueIndex(now);
+  if (i < 0) { return; }
+  var a = _alarm.list[i];
+  a.last = alarmTodayStamp(now);
   alarmSave();
+
   _alarmRinging = 1;
+  _alarmRingId = a.id;
   var d = $("alarmRing");
   var t = $("alarmRingTime");
   var l = $("alarmRingLabel");
-  if (t) { t.innerHTML = escapeHtml(alarmText()); }
+  if (t) { t.innerHTML = escapeHtml(alarmText(a)); }
   if (l) {
-    var lab = _alarm.label ? (_alarm.label + " · ") : "";
-    l.innerHTML = escapeHtml(lab + alarmRepeatText());
+    var lab = a.label ? (a.label + " · ") : "";
+    l.innerHTML = escapeHtml(lab + alarmRepeatText(a));
   }
   if (d) { d.className = "show"; }
 }
+
 function alarmStop() {
   _alarmRinging = 0;
   var d = $("alarmRing");
   if (d) { d.className = ""; }
-  if (_alarm.repeat === "once") {
-    _alarm.on = 0;
+  var i = alarmFind(_alarmRingId);
+  _alarmRingId = "";
+  /* 「仅一次」响过后自动关掉那一条 */
+  if (i >= 0 && _alarm.list[i].repeat === "once") {
+    _alarm.list[i].on = 0;
     alarmSave();
     alarmBadgeSync();
   }
 }
+
 function alarmInit() {
   alarmLoad();
   alarmBadgeSync();
@@ -12473,5 +13842,44 @@ function alarmInit() {
 alarmInit();
 </script>
 
+
+<div id="onboard" style="position:fixed;left:0;top:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,.92);display:none;flex-direction:column;align-items:center;justify-content:flex-start;overflow:auto;padding:5vh 4vw;color:#fff;font-size:calc(20px*var(--sys,1));line-height:1.6;-webkit-overflow-scrolling:touch;">
+  <div style="max-width:920px;width:100%;">
+    <div style="font-size:1.5em;font-weight:bold;margin-bottom:.3em;">欢迎 · 请先授予常驻权限</div>
+    <div style="opacity:.9;margin-bottom:1em;">为了让仪表盘稳定常驻（后台播放音乐不中断、息屏也不掉 Wi-Fi、不被系统杀掉而重启），请在首次使用时把下面几项授予本应用。屏幕常亮与 Wi-Fi 常开已在「本机常驻」默认开启。</div>
+    <div style="border:1px solid #555;border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="font-weight:bold;font-size:1.1em;">① 电池省电白名单（最关键）</div>
+      <div style="opacity:.9;margin:.4em 0;">设为「不优化 / 不受限制」，否则长时间息屏后系统会暂停本应用，导致看门狗重启。</div>
+      <button style="font-size:1em;padding:10px 18px;border-radius:8px;border:1px solid #888;background:#1d6fb8;color:#fff;cursor:pointer;margin:2px;" onclick="kdOnboardGrant('battery')">去授予</button>
+    </div>
+    <div style="border:1px solid #555;border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="font-weight:bold;font-size:1.1em;">② 通知权限</div>
+      <div style="opacity:.9;margin:.4em 0;">常驻前台服务的通知条需要它，否则服务可能被系统限制或通知不显示。</div>
+      <button style="font-size:1em;padding:10px 18px;border-radius:8px;border:1px solid #888;background:#1d6fb8;color:#fff;cursor:pointer;margin:2px;" onclick="kdOnboardGrant('notify')">去授予</button>
+    </div>
+    <div style="border:1px solid #555;border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="font-weight:bold;font-size:1.1em;">③ 音乐 &amp; 存储</div>
+      <div style="opacity:.9;margin:.4em 0;">本地音乐播放需要读取存储权限，不授权则音乐模块读不到歌曲。</div>
+      <button style="font-size:1em;padding:10px 18px;border-radius:8px;border:1px solid #888;background:#1d6fb8;color:#fff;cursor:pointer;margin:2px;" onclick="kdOnboardGrant('music')">去授予</button>
+    </div>
+    <div style="border:1px solid #555;border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="font-weight:bold;font-size:1.1em;">④ 自启动 / 后台运行</div>
+      <div style="opacity:.9;margin:.4em 0;">部分系统要在「自启动管理 / 后台管理 / 电池」里放行本应用，否则开机或被杀后不会自动拉起。</div>
+      <button style="font-size:1em;padding:10px 18px;border-radius:8px;border:1px solid #888;background:#1d6fb8;color:#fff;cursor:pointer;margin:2px;" onclick="kdOnboardGrant('autostart')">打开应用详情</button>
+    </div>
+    <div style="display:flex;gap:12px;margin:6px 0 14px;flex-wrap:wrap;">
+      <button style="font-size:1em;padding:10px 18px;border-radius:8px;border:1px solid #888;background:#1d6fb8;color:#fff;cursor:pointer;margin:2px;" onclick="kdOnboardRefresh()">重新检测</button>
+      <button style="font-size:1em;padding:10px 18px;border-radius:8px;border:1px solid #888;background:#1d6fb8;color:#fff;cursor:pointer;margin:2px;" onclick="kdOnboardClose()">完成 / 稍后再说</button>
+    </div>
+    <div id="obStatus" style="white-space:pre-wrap;background:#111;border:1px solid #444;border-radius:8px;padding:10px;font-size:.95em;"></div>
+  </div>
+</div>
+<script>
+function kdOnboardOpen(){var ob=document.getElementById('onboard');if(!ob)return;ob.style.display='flex';kdOnboardRefresh();}
+function kdOnboardClose(){var ob=document.getElementById('onboard');if(ob)ob.style.display='none';try{storeSet('kd_onboard_v1','1');}catch(e){}}
+function kdOnboardIfFirst(){var seen=false;try{seen=storeGet('kd_onboard_v1')==='1';}catch(e){}if(!seen){setTimeout(function(){try{kdOnboardOpen();}catch(e){}},1500);}}
+function kdOnboardRefresh(){var box=document.getElementById('obStatus');if(!box)return;if(!bridgeOK()){box.innerHTML='（网页版不支持，请在 APK 中操作）';return;}try{box.innerHTML=(window.KindleBridge.checkPerms()||'权限状态正常，关键项已具备。').replace(/\n/g,'<br>');}catch(e){box.innerHTML='';}}
+function kdOnboardGrant(kind){if(!bridgeOK())return;try{if(kind==='battery')window.KindleBridge.requestBatteryWhitelist();else if(kind==='notify')window.KindleBridge.requestNotify();else if(kind==='music')window.KindleBridge.requestMusicPermission();else if(kind==='autostart')window.KindleBridge.openAppDetails();}catch(e){}setTimeout(function(){try{kdOnboardRefresh();}catch(e){}},800);}
+</script>
 </body>
 </html>
